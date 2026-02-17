@@ -55,7 +55,7 @@ export default function Home() {
           </button>
 
           <p className="text-sm opacity-70">
-            Try: <a className="underline" href="/texas/100000-salary-after-tax">Texas $100,000</a>
+            Try: <a className="underline" href="/salary/100000-salary-after-tax-texas">Texas $100,000</a>
           </p>
         </div>
       </div>
