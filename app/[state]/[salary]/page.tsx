@@ -1,48 +1,40 @@
-import { notFound } from "next/navigation";
+type PageProps = { params: { state: string; salary: string } };
 
-type PageProps = {
-  params: {
-    state: string;
-    salary: string;
-  };
-};
-
-function formatSalary(raw: string) {
-  const match = raw.match(/^(\d+)-salary-after-tax$/);
-  if (!match) return null;
-  return parseInt(match[1], 10);
+function parseSalarySlug(slug: string): number | null {
+  const m = slug.match(/^(\d+)-salary-after-tax$/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n;
 }
 
-function calculateTexasTakeHome(salary: number) {
-  const federal = salary * 0.22;
-  const fica = salary * 0.0765;
-  const state = 0; // Texas has no state income tax
-  return {
-    federal,
-    fica,
-    state,
-    takeHome: salary - federal - fica - state,
-  };
-}
+export default function Page({ params }: PageProps) {
+  const state = (params.state || "").toLowerCase();
+  const salary = parseSalarySlug(params.salary || "");
 
-export default function SalaryPage({ params }: PageProps) {
-  const salary = formatSalary(params.salary);
-  const state = params.state.toLowerCase();
-
-  if (!salary) return notFound();
-
-  if (state !== "texas") {
+  // hard 404-style UI (avoids throwing, avoids 500s)
+  if (!salary) {
     return (
       <main className="min-h-screen p-10">
-        <h1 className="text-3xl font-bold">
-          State not supported yet.
-        </h1>
-        <p className="mt-4">Currently live: Texas</p>
+        <h1 className="text-3xl font-bold">Page not found</h1>
       </main>
     );
   }
 
-  const result = calculateTexasTakeHome(salary);
+  if (state !== "texas") {
+    return (
+      <main className="min-h-screen p-10">
+        <h1 className="text-3xl font-bold">State not supported yet.</h1>
+        <p className="mt-3 text-lg">Currently live: Texas</p>
+        <p className="mt-2 text-sm opacity-70">Try: /texas/100000-salary-after-tax</p>
+      </main>
+    );
+  }
+
+  // placeholder math
+  const federal = salary * 0.22;
+  const fica = salary * 0.0765;
+  const takeHome = salary - federal - fica;
 
   return (
     <main className="min-h-screen p-10">
@@ -51,12 +43,11 @@ export default function SalaryPage({ params }: PageProps) {
       </h1>
 
       <div className="space-y-2 text-lg">
-        <p>Federal Tax: ${result.federal.toLocaleString()}</p>
-        <p>FICA: ${result.fica.toLocaleString()}</p>
-        <p>State Tax: ${result.state.toLocaleString()}</p>
+        <p>Federal Tax: ${Math.round(federal).toLocaleString()}</p>
+        <p>FICA: ${Math.round(fica).toLocaleString()}</p>
         <hr className="my-4" />
         <p className="text-2xl font-semibold">
-          Take Home Pay: ${result.takeHome.toLocaleString()}
+          Take Home Pay: ${Math.round(takeHome).toLocaleString()}
         </p>
       </div>
     </main>
