@@ -1,12 +1,17 @@
 import { notFound } from "next/navigation";
 
-type Params = { slug: string };
+type Params = { slug?: string };
 
 const STATES: Record<string, { name: string; slug: string }> = {
   texas: { name: "Texas", slug: "texas" },
+  // Add more states later
 };
 
-function parseSlug(slug: string): { amount: number; stateSlug: string } | null {
+function parseSlug(slug: unknown): { amount: number; stateSlug: string } | null {
+  // Guard: during prerender, params/slug can be undefined in some edge cases
+  if (typeof slug !== "string") return null;
+
+  // Expected: "{amount}-salary-after-tax-{state}"
   const m = slug.match(/^(\d+)-salary-after-tax-([a-z-]+)$/);
   if (!m) return null;
 
@@ -20,17 +25,16 @@ function parseSlug(slug: string): { amount: number; stateSlug: string } | null {
 }
 
 export function generateStaticParams() {
-  // starter set: Texas pages (keeps build fast)
-  const amounts: number[] = [];
-  for (let a = 30000; a <= 300000; a += 5000) amounts.push(a);
-
-  return amounts.map((amount) => ({
-    slug: `${amount}-salary-after-tax-texas`,
-  }));
+  // Starter set: Texas pages (keeps build fast)
+  const out: { slug: string }[] = [];
+  for (let a = 30000; a <= 300000; a += 5000) {
+    out.push({ slug: `${a}-salary-after-tax-texas` });
+  }
+  return out;
 }
 
 export function generateMetadata({ params }: { params: Params }) {
-  const parsed = parseSlug(params.slug);
+  const parsed = parseSlug(params?.slug);
   if (!parsed) return {};
 
   const state = STATES[parsed.stateSlug].name;
@@ -44,7 +48,7 @@ export function generateMetadata({ params }: { params: Params }) {
 }
 
 export default function SalaryPage({ params }: { params: Params }) {
-  const parsed = parseSlug(params.slug);
+  const parsed = parseSlug(params?.slug);
   if (!parsed) return notFound();
 
   const state = STATES[parsed.stateSlug].name;
@@ -57,7 +61,7 @@ export default function SalaryPage({ params }: { params: Params }) {
           ${amountFmt} Salary After Tax in {state}
         </h1>
         <p className="mt-3 text-lg opacity-80">
-          Live route ✅ Next: plug in the real tax calculator + show the breakdown.
+          Live route ✅ Next: plug in the real tax calculation + show a full breakdown.
         </p>
 
         <div className="mt-8 rounded border p-6">
