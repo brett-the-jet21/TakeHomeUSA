@@ -52,6 +52,41 @@ function calcFederal(taxable: number): { tax: number; marginalRate: number } {
   return { tax, marginalRate };
 }
 
+// ─── Generic Multi-State Tax Calculator ──────────────────────────────────────
+import type { StateTaxConfig } from "./states";
+import { calcStateOnly } from "./states";
+
+export function calculateTax(stateConfig: StateTaxConfig, gross: number): TaxResult {
+  const federalTaxable = Math.max(0, gross - STANDARD_DEDUCTION);
+  const { tax: federalTax, marginalRate } = calcFederal(federalTaxable);
+
+  const socialSecurity = Math.min(gross, SS_WAGE_BASE) * 0.062;
+  const medicare = gross * 0.0145;
+  const additionalMedicare = Math.max(0, gross - ADDL_MEDICARE_THRESHOLD) * 0.009;
+  const ficaTotal = socialSecurity + medicare + additionalMedicare;
+
+  const stateTax = calcStateOnly(stateConfig, gross);
+  const totalTax = federalTax + ficaTotal + stateTax;
+  const takeHome = gross - totalTax;
+
+  return {
+    gross,
+    standardDeduction: STANDARD_DEDUCTION,
+    federalTaxable,
+    federalTax,
+    socialSecurity,
+    medicare,
+    additionalMedicare,
+    ficaTotal,
+    stateTax,
+    totalTax,
+    takeHome,
+    effectiveFederalRate: gross > 0 ? federalTax / gross : 0,
+    effectiveTotalRate: gross > 0 ? totalTax / gross : 0,
+    marginalRate,
+  };
+}
+
 // ─── Texas Tax Calculator (No State Income Tax) ───────────────────────────────
 export function calculateTexasTax(gross: number): TaxResult {
   const federalTaxable = Math.max(0, gross - STANDARD_DEDUCTION);
