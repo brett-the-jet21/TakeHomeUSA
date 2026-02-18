@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     template: "%s | TakeHomeUSA",
   },
   description:
-    "Free salary after-tax calculator for every US state. See your exact take-home pay, federal tax breakdown, and monthly paycheck. Starting with Texas — all 50 states coming soon.",
+    "Free salary after-tax calculator for every US state. See your exact take-home pay, federal tax breakdown, and monthly paycheck. Texas live now — all 50 states coming soon.",
   metadataBase: new URL("https://www.takehomeusa.com"),
   alternates: { canonical: "https://www.takehomeusa.com/" },
   keywords: [
@@ -23,6 +23,7 @@ export const metadata: Metadata = {
     siteName: "TakeHomeUSA",
     type: "website",
     locale: "en_US",
+    url: "https://www.takehomeusa.com",
   },
   robots: {
     index: true,
@@ -40,42 +41,55 @@ export default function RootLayout({
     <html lang="en">
       <head>
         {/*
-          ── Google AdSense ────────────────────────────────────────────────────
-          Replace YOUR_PUBLISHER_ID with your actual ca-pub-XXXXXXXXXXXXXXXX ID.
-          Uncomment the script tag below once your site is approved.
-          ──────────────────────────────────────────────────────────────────── */}
+          ── Google AdSense ───────────────────────────────────────────────────
+          1. Replace ca-pub-YOUR_PUBLISHER_ID with your real publisher ID.
+          2. Uncomment the <script> tag below.
+          3. Add your <ins class="adsbygoogle"> units where the .ad-slot divs are.
+          ─────────────────────────────────────────────────────────────────── */}
         {/* <script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_PUBLISHER_ID"
           crossOrigin="anonymous"
         /> */}
       </head>
-      <body className="flex flex-col min-h-screen">
-        {/* ── Header ───────────────────────────────────────────────────────── */}
+      <body className="flex flex-col min-h-screen bg-white">
+
+        {/* ── Header ─────────────────────────────────────────────────────── */}
         <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
           <div className="container-page flex items-center justify-between h-14">
+
+            {/* Logo */}
             <Link
               href="/"
-              className="flex items-center gap-2 font-bold text-gray-900 text-lg hover:text-blue-700 transition-colors"
+              className="flex items-center gap-1.5 font-extrabold text-gray-900 text-lg hover:text-blue-700 transition-colors"
             >
-              <span className="text-blue-700">$</span>
+              <span className="text-blue-700 text-xl">$</span>
               <span>TakeHomeUSA</span>
             </Link>
 
-            <nav className="flex items-center gap-6 text-sm font-medium">
+            {/* Nav */}
+            <nav className="flex items-center gap-1 text-sm font-medium">
               <Link
-                href="/salary/100000-salary-after-tax-texas"
-                className="text-gray-600 hover:text-blue-700 transition-colors"
+                href="/texas"
+                className="px-3 py-1.5 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
               >
                 Texas
               </Link>
-              <span className="text-gray-300">|</span>
-              <span className="text-gray-400 cursor-default" title="Coming soon">
-                All States ↗
-              </span>
+              <Link
+                href="/states"
+                className="px-3 py-1.5 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+              >
+                All States
+              </Link>
+              <Link
+                href="/about"
+                className="px-3 py-1.5 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors hidden sm:block"
+              >
+                About
+              </Link>
               <Link
                 href="/"
-                className="bg-blue-700 text-white px-4 py-1.5 rounded-full text-sm font-semibold hover:bg-blue-800 transition-colors"
+                className="ml-2 bg-blue-700 text-white px-4 py-1.5 rounded-full text-sm font-bold hover:bg-blue-800 transition-colors"
               >
                 Calculator
               </Link>
@@ -83,52 +97,96 @@ export default function RootLayout({
           </div>
         </header>
 
-        {/* ── Page Content ─────────────────────────────────────────────────── */}
+        {/* ── Content ────────────────────────────────────────────────────── */}
         <div className="flex-1">{children}</div>
 
-        {/* ── Footer ───────────────────────────────────────────────────────── */}
-        <footer className="bg-gray-900 text-gray-400 mt-16">
-          <div className="container-page py-12 grid sm:grid-cols-3 gap-8">
+        {/* ── Footer ─────────────────────────────────────────────────────── */}
+        <footer className="bg-gray-950 text-gray-400 mt-16 border-t border-gray-800">
+          <div className="container-page py-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+
             {/* Brand */}
-            <div>
-              <div className="flex items-center gap-2 text-white font-bold text-lg mb-3">
-                <span className="text-blue-400">$</span>
+            <div className="sm:col-span-2 lg:col-span-1">
+              <Link href="/" className="flex items-center gap-1.5 text-white font-extrabold text-lg mb-3 hover:text-blue-400 transition-colors">
+                <span className="text-blue-400 text-xl">$</span>
                 <span>TakeHomeUSA</span>
-              </div>
-              <p className="text-sm leading-relaxed">
-                Free, accurate salary after-tax calculator for every US state.
-                Powered by real {new Date().getFullYear() - 1} federal tax
-                brackets.
+              </Link>
+              <p className="text-sm leading-relaxed mb-4">
+                Free, accurate salary after-tax calculators for every US state.
+                Real IRS tax brackets. No signup required.
               </p>
+              <div className="flex gap-3 text-xs">
+                <Link href="/about" className="hover:text-white transition-colors">About</Link>
+                <span>·</span>
+                <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+                <span>·</span>
+                <Link href="/states" className="hover:text-white transition-colors">All States</Link>
+              </div>
             </div>
 
-            {/* State calculators */}
+            {/* State Calculators */}
             <div>
-              <h3 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">
+              <h3 className="text-white font-bold mb-4 text-sm uppercase tracking-wide">
                 State Calculators
               </h3>
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2.5 text-sm">
                 <li>
-                  <Link
-                    href="/salary/100000-salary-after-tax-texas"
-                    className="hover:text-white transition-colors"
-                  >
-                    Texas Salary Calculator
+                  <Link href="/texas" className="flex items-center gap-2 hover:text-white transition-colors group">
+                    <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                    Texas — Live
                   </Link>
                 </li>
-                <li className="text-gray-600">California (coming soon)</li>
-                <li className="text-gray-600">New York (coming soon)</li>
-                <li className="text-gray-600">Florida (coming soon)</li>
+                <li>
+                  <Link href="/florida" className="flex items-center gap-2 hover:text-white transition-colors">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+                    Florida — Coming Soon
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/new-york" className="flex items-center gap-2 hover:text-white transition-colors">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+                    New York — Coming Soon
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/california" className="flex items-center gap-2 hover:text-white transition-colors">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+                    California
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/states" className="text-blue-400 hover:text-blue-300 transition-colors font-medium">
+                    View all 50 states →
+                  </Link>
+                </li>
               </ul>
             </div>
 
-            {/* Popular */}
+            {/* Popular Texas */}
             <div>
-              <h3 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">
-                Popular Texas Calculators
+              <h3 className="text-white font-bold mb-4 text-sm uppercase tracking-wide">
+                Popular in Texas
               </h3>
-              <ul className="space-y-2 text-sm">
-                {[50000, 75000, 100000, 125000, 150000, 200000].map((n) => (
+              <ul className="space-y-2.5 text-sm">
+                {[50_000, 75_000, 100_000, 125_000, 150_000, 200_000].map((n) => (
+                  <li key={n}>
+                    <Link
+                      href={`/salary/${n}-salary-after-tax-texas`}
+                      className="hover:text-white transition-colors"
+                    >
+                      ${n.toLocaleString()} in Texas
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* More Texas */}
+            <div>
+              <h3 className="text-white font-bold mb-4 text-sm uppercase tracking-wide">
+                More Texas Salaries
+              </h3>
+              <ul className="space-y-2.5 text-sm">
+                {[60_000, 80_000, 90_000, 110_000, 175_000, 250_000].map((n) => (
                   <li key={n}>
                     <Link
                       href={`/salary/${n}-salary-after-tax-texas`}
@@ -142,16 +200,14 @@ export default function RootLayout({
             </div>
           </div>
 
+          {/* Bottom bar */}
           <div className="border-t border-gray-800">
             <div className="container-page py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
-              <p>
-                © {new Date().getFullYear()} TakeHomeUSA.com · All rights
-                reserved
-              </p>
-              <p className="text-center">
-                For informational purposes only. Consult a tax professional for
-                personalized advice. Numbers based on 2024 IRS tax brackets,
-                single filer, standard deduction.
+              <p>© {new Date().getFullYear()} TakeHomeUSA.com · All rights reserved</p>
+              <p className="text-center max-w-xl">
+                For informational purposes only. Numbers based on 2024 IRS tax
+                brackets, single filer, standard deduction. Not tax advice —
+                consult a CPA for personalized guidance.
               </p>
             </div>
           </div>

@@ -5,14 +5,30 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { POPULAR_SALARIES, calculateTexasTax, fmt } from "@/lib/tax";
 
-const STATES = [{ slug: "texas", name: "Texas — No State Income Tax" }];
+const STATES = [{ slug: "texas", name: "Texas" }];
 
-const SALARY_RANGES = [
-  { label: "Entry Level", salaries: [30_000, 35_000, 40_000, 45_000, 50_000] },
-  { label: "Mid Career",  salaries: [55_000, 60_000, 65_000, 70_000, 75_000] },
-  { label: "Experienced", salaries: [80_000, 85_000, 90_000, 95_000, 100_000] },
-  { label: "Senior",      salaries: [110_000, 120_000, 125_000, 150_000, 175_000] },
-  { label: "Executive",   salaries: [200_000, 250_000, 300_000, 400_000, 500_000] },
+// Salary ranges shown as clickable cards on the homepage
+const SALARY_SHOWCASE = [
+  { amount: 50_000,  badge: null },
+  { amount: 60_000,  badge: null },
+  { amount: 75_000,  badge: "Popular" },
+  { amount: 80_000,  badge: null },
+  { amount: 90_000,  badge: null },
+  { amount: 100_000, badge: "Most Searched" },
+  { amount: 110_000, badge: null },
+  { amount: 120_000, badge: null },
+  { amount: 125_000, badge: "Popular" },
+  { amount: 150_000, badge: null },
+  { amount: 175_000, badge: null },
+  { amount: 200_000, badge: null },
+];
+
+const COMPARISON_DATA = [
+  { state: "Texas",      take: 78_509, color: "#22c55e", pct: 100 },
+  { state: "Florida",    take: 78_509, color: "#4ade80", pct: 100 },
+  { state: "Illinois",   take: 73_554, color: "#facc15", pct: 94 },
+  { state: "New York",   take: 68_200, color: "#fb923c", pct: 87 },
+  { state: "California", take: 67_900, color: "#f87171", pct: 86 },
 ];
 
 export default function HomePage() {
@@ -38,281 +54,357 @@ export default function HomePage() {
 
   return (
     <>
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="bg-gradient-to-b from-blue-900 to-blue-800 text-white">
-        <div className="container-page py-16 sm:py-20">
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="inline-block bg-blue-700 text-blue-200 text-xs font-semibold px-3 py-1 rounded-full mb-5 uppercase tracking-wider">
-              2024 Tax Data · Updated
-            </div>
-            <h1 className="text-4xl sm:text-5xl font-extrabold leading-tight mb-4">
-              Salary After Tax Calculator
-            </h1>
-            <p className="text-blue-200 text-lg mb-10">
-              See your exact take-home pay in seconds. Real federal tax brackets,
-              FICA, and state taxes — no guesswork.
-            </p>
+      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
+      <section
+        className="relative overflow-hidden text-white"
+        style={{
+          background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1d4ed8 100%)",
+        }}
+      >
+        {/* Decorative blobs */}
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 20% 80%, rgba(99,102,241,0.15) 0%, transparent 60%), " +
+              "radial-gradient(circle at 80% 20%, rgba(16,185,129,0.1) 0%, transparent 50%)",
+          }}
+        />
 
-            {/* Calculator Card */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-2xl text-gray-900">
-              <div className="grid sm:grid-cols-2 gap-4 mb-4">
-                <label className="block text-left">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                    Annual Salary
-                  </span>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">
-                      $
-                    </span>
-                    <input
-                      inputMode="numeric"
-                      value={salary}
-                      onChange={(e) => setSalary(e.target.value)}
-                      placeholder="100,000"
-                      className="w-full border border-gray-300 rounded-lg pl-7 pr-4 py-3 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </label>
+        <div className="container-page relative py-16 sm:py-22">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
 
-                <label className="block text-left">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                    State
-                  </span>
-                  <select
-                    value={state}
-                    onChange={(e) => setState(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                  >
-                    {STATES.map((s) => (
-                      <option key={s.slug} value={s.slug}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+            {/* Left copy */}
+            <div>
+              <div className="inline-flex items-center gap-2 bg-green-500/20 border border-green-400/30 text-green-300 text-xs font-bold px-4 py-1.5 rounded-full mb-6 uppercase tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                Texas: $0 state income tax
               </div>
 
-              {/* Live Preview */}
-              {previewTax && (
-                <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4 mb-4 flex items-center justify-between">
-                  <div className="text-left">
-                    <p className="text-xs text-green-700 font-medium uppercase tracking-wide">
-                      Estimated Take-Home
-                    </p>
-                    <p className="text-3xl font-bold text-green-700">
-                      {fmt(previewTax.takeHome)}
-                      <span className="text-base font-medium text-green-600">
-                        /yr
-                      </span>
-                    </p>
-                  </div>
-                  <div className="text-right text-sm text-gray-600">
-                    <p>
-                      <span className="font-semibold">
-                        {fmt(previewTax.takeHome / 12)}
-                      </span>{" "}
-                      / mo
-                    </p>
-                    <p>
-                      <span className="font-semibold">
-                        {fmt(previewTax.takeHome / 26)}
-                      </span>{" "}
-                      / bi-wk
-                    </p>
-                  </div>
-                </div>
-              )}
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] mb-5">
+                What Do You
+                <span className="block text-transparent" style={{
+                  WebkitTextFillColor: "transparent",
+                  backgroundImage: "linear-gradient(90deg, #60a5fa, #34d399)",
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                }}>
+                  Actually Take Home?
+                </span>
+              </h1>
 
-              <button
-                onClick={handleCalculate}
-                disabled={!cleaned || Number(cleaned) < 1000}
-                className="w-full bg-blue-700 text-white font-bold py-3.5 rounded-xl text-lg hover:bg-blue-800 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                See Full Tax Breakdown →
-              </button>
-
-              <p className="text-xs text-gray-400 mt-3">
-                Based on 2024 IRS brackets · Single filer · Standard deduction
+              <p className="text-blue-200 text-lg leading-relaxed mb-8 max-w-lg">
+                Your salary isn&apos;t what hits your bank account. Find out your
+                real take-home pay in Texas — with accurate 2024 federal tax
+                brackets, FICA, and zero state tax.
               </p>
+
+              {/* Quick trust signals */}
+              <div className="flex flex-wrap gap-4 text-sm text-blue-300">
+                {[
+                  "✓ Real 2024 IRS brackets",
+                  "✓ Instant results",
+                  "✓ No signup",
+                  "✓ 100% free",
+                ].map((t) => (
+                  <span key={t} className="flex items-center">{t}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Calculator card */}
+            <div>
+              <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 text-gray-900">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 text-center">
+                  Salary After Tax Calculator
+                </p>
+
+                <div className="space-y-4 mb-4">
+                  <label className="block">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
+                      Annual Gross Salary
+                    </span>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl font-bold">
+                        $
+                      </span>
+                      <input
+                        inputMode="numeric"
+                        value={salary}
+                        onChange={(e) => setSalary(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleCalculate()}
+                        placeholder="100,000"
+                        className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-4 text-2xl font-extrabold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                      />
+                    </div>
+                  </label>
+
+                  <label className="block">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
+                      State
+                    </span>
+                    <select
+                      value={state}
+                      onChange={(e) => setState(e.target.value)}
+                      className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3.5 text-base font-semibold focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 bg-white transition-all"
+                    >
+                      {STATES.map((s) => (
+                        <option key={s.slug} value={s.slug}>
+                          {s.name} — No state income tax!
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                {/* Live Preview */}
+                {previewTax ? (
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-5 mb-4">
+                    <p className="text-xs font-bold text-green-600 uppercase tracking-widest mb-1">
+                      Your Estimated Take-Home
+                    </p>
+                    <p className="text-4xl font-black text-green-700 mb-3">
+                      {fmt(previewTax.takeHome)}
+                      <span className="text-lg font-semibold text-green-500 ml-1">/yr</span>
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      {[
+                        { label: "Monthly", val: previewTax.takeHome / 12 },
+                        { label: "Bi-Weekly", val: previewTax.takeHome / 26 },
+                        { label: "Hourly", val: previewTax.takeHome / 2080 },
+                      ].map(({ label, val }) => (
+                        <div key={label} className="bg-white rounded-xl p-2.5 border border-green-100">
+                          <p className="text-xs text-gray-500">{label}</p>
+                          <p className="font-bold text-gray-900 text-sm">{fmt(val)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 rounded-2xl p-5 mb-4 text-center text-gray-400 text-sm">
+                    Enter a salary above to see your take-home pay
+                  </div>
+                )}
+
+                <button
+                  onClick={handleCalculate}
+                  disabled={!cleaned || Number(cleaned) < 1000}
+                  className="w-full py-4 rounded-2xl text-white font-extrabold text-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ background: "linear-gradient(90deg, #1d4ed8, #2563eb)" }}
+                >
+                  See Full Tax Breakdown →
+                </button>
+
+                <p className="text-center text-xs text-gray-400 mt-3">
+                  2024 IRS brackets · Single filer · Standard deduction · No signup
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Ad Slot: Leaderboard ─────────────────────────────────────────── */}
+      {/* ── Ad: Leaderboard ──────────────────────────────────────────────────── */}
       <div className="container-page my-6">
-        <div className="ad-slot ad-leaderboard">
-          {/* AdSense: replace with <ins class="adsbygoogle"> once approved */}
-        </div>
+        <div className="ad-slot ad-leaderboard" />
       </div>
 
-      {/* ── Trust Badges ─────────────────────────────────────────────────── */}
+      {/* ── Popular Salary Cards ─────────────────────────────────────────────── */}
       <section className="container-page">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { icon: "✓", label: "2024 Tax Brackets", sub: "IRS-verified data" },
-            { icon: "⚡", label: "Instant Results", sub: "No signup required" },
-            { icon: "$", label: "100% Free", sub: "No hidden fees" },
-            { icon: "🔒", label: "Private", sub: "No data stored" },
-          ].map(({ icon, label, sub }) => (
-            <div
-              key={label}
-              className="flex items-center gap-3 bg-gray-50 rounded-xl p-4 border border-gray-100"
-            >
-              <span className="text-2xl">{icon}</span>
-              <div>
-                <p className="font-semibold text-gray-900 text-sm">{label}</p>
-                <p className="text-xs text-gray-500">{sub}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Popular Salaries by Range ─────────────────────────────────────── */}
-      <section className="container-page mt-14">
-        <div className="flex items-baseline justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">
-            Texas Salary Calculator — Popular Amounts
-          </h2>
-          <span className="text-sm text-gray-500 hidden sm:block">
-            No state income tax
-          </span>
+        <div className="flex items-end justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-extrabold text-gray-900">
+              Texas Salaries — How Much Will You Take Home?
+            </h2>
+            <p className="text-gray-500 text-sm mt-1">
+              Click any amount for the full 2024 breakdown
+            </p>
+          </div>
+          <Link
+            href="/texas"
+            className="text-blue-700 text-sm font-semibold hover:underline hidden sm:block"
+          >
+            View all →
+          </Link>
         </div>
 
-        <div className="space-y-6">
-          {SALARY_RANGES.map(({ label, salaries }) => {
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {SALARY_SHOWCASE.map(({ amount, badge }) => {
+            const tax = calculateTexasTax(amount);
+            const pctTax = (tax.effectiveTotalRate * 100).toFixed(1);
             return (
-              <div key={label}>
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  {label}
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                  {salaries.map((amount) => {
-                    const tax = calculateTexasTax(amount);
-                    return (
-                      <Link
-                        key={amount}
-                        href={`/salary/${amount}-salary-after-tax-texas`}
-                        className="group bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-400 hover:shadow-md transition-all text-center"
-                      >
-                        <p className="font-bold text-gray-900 text-sm group-hover:text-blue-700">
-                          ${amount.toLocaleString()}
-                        </p>
-                        <p className="text-green-600 font-semibold text-xs mt-0.5">
-                          {fmt(tax.takeHome)}/yr
-                        </p>
-                        <p className="text-gray-400 text-xs mt-0.5">
-                          {fmt(tax.takeHome / 12)}/mo
-                        </p>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
+              <Link
+                key={amount}
+                href={`/salary/${amount}-salary-after-tax-texas`}
+                className="group relative bg-white border border-gray-200 rounded-2xl p-5 hover:border-blue-400 hover:shadow-xl transition-all duration-200"
+              >
+                {badge && (
+                  <span
+                    className={`absolute top-3 right-3 text-xs font-bold px-2 py-0.5 rounded-full ${
+                      badge === "Most Searched"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {badge}
+                  </span>
+                )}
+                <p className="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">
+                  Gross
+                </p>
+                <p className="text-xl font-extrabold text-gray-900 group-hover:text-blue-700 mb-3">
+                  ${amount.toLocaleString()}
+                </p>
+                <div className="h-px bg-gray-100 mb-3" />
+                <p className="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">
+                  Take-Home
+                </p>
+                <p className="text-2xl font-black text-green-600">
+                  {fmt(tax.takeHome)}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {fmt(tax.takeHome / 12)}/mo · {pctTax}% eff.
+                </p>
+                <p className="text-xs text-blue-500 font-medium mt-3 group-hover:text-blue-700">
+                  Full breakdown →
+                </p>
+              </Link>
             );
           })}
         </div>
       </section>
 
-      {/* ── Ad Slot: In-content ───────────────────────────────────────────── */}
+      {/* ── Ad: In-content ───────────────────────────────────────────────────── */}
       <div className="container-page mt-10">
         <div className="ad-slot ad-in-content" />
       </div>
 
-      {/* ── Texas Tax Explainer ───────────────────────────────────────────── */}
+      {/* ── Why Texas Section ────────────────────────────────────────────────── */}
       <section className="container-page mt-14">
-        <div className="grid sm:grid-cols-2 gap-8 items-center">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Why Texas? No State Income Tax
+        <div className="grid sm:grid-cols-2 gap-8 items-stretch">
+
+          {/* Left: text */}
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-3xl p-8">
+            <div className="w-12 h-12 bg-green-500 rounded-2xl flex items-center justify-center text-white text-2xl font-black mb-5">
+              $0
+            </div>
+            <h2 className="text-2xl font-extrabold text-gray-900 mb-3">
+              Texas = Zero State Income Tax
             </h2>
-            <p className="text-gray-600 mb-4">
-              Texas is one of only <strong>9 US states with zero state income
-              tax</strong>. That means every dollar you earn stays in your pocket
-              — unlike California (up to 13.3%), New York (up to 10.9%), or New
-              Jersey (up to 10.75%).
+            <p className="text-gray-600 mb-4 leading-relaxed">
+              Texas is one of only <strong>9 states</strong> that collects no
+              state income tax. On a $100K salary, you keep{" "}
+              <strong className="text-green-700">$78,509</strong> — that&apos;s{" "}
+              <strong className="text-green-700">$10,000+ more</strong> than
+              California workers earning the same amount.
             </p>
-            <p className="text-gray-600 mb-4">
-              On a <strong>$100,000 salary</strong>, a Texan takes home roughly{" "}
-              <strong className="text-green-700">$78,509/year</strong>. The same
-              salary in California nets only around <strong>$68,000</strong> —
-              that's{" "}
-              <strong className="text-blue-700">$10,500+ more every year</strong>{" "}
-              just by living in Texas.
-            </p>
+            <div className="space-y-2 mb-5">
+              {[
+                "No state income tax to file",
+                "Only federal + FICA deductions",
+                "Same take-home as Florida",
+                "One of 9 no-tax states in the US",
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-2 text-sm text-gray-700">
+                  <span className="text-green-500 font-bold">✓</span>
+                  {item}
+                </div>
+              ))}
+            </div>
             <Link
-              href="/salary/100000-salary-after-tax-texas"
-              className="inline-block bg-blue-700 text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-blue-800 transition-colors"
+              href="/texas"
+              className="inline-block bg-green-600 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-green-700 transition-colors text-sm"
             >
-              See $100K Texas Breakdown →
+              Texas Salary Guide →
             </Link>
           </div>
 
-          <div className="bg-gray-50 rounded-2xl border border-gray-200 p-6">
-            <h3 className="font-bold text-gray-900 mb-4 text-center">
-              $100,000 Salary Comparison
+          {/* Right: comparison bars */}
+          <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
+            <h3 className="font-extrabold text-gray-900 mb-1 text-lg">
+              $100,000 Salary — State Comparison
             </h3>
-            <div className="space-y-3">
-              {[
-                { state: "Texas", take: 78_509, color: "bg-green-500" },
-                { state: "Florida", take: 78_509, color: "bg-green-400" },
-                { state: "Illinois", take: 73_554, color: "bg-yellow-400" },
-                { state: "New York", take: 68_200, color: "bg-orange-400" },
-                { state: "California", take: 67_900, color: "bg-red-400" },
-              ].map(({ state: st, take, color }) => (
+            <p className="text-gray-500 text-xs mb-6">Annual take-home pay after all taxes</p>
+
+            <div className="space-y-4">
+              {COMPARISON_DATA.map(({ state: st, take, color, pct }) => (
                 <div key={st}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-medium text-gray-700">{st}</span>
-                    <span className="font-semibold text-gray-900">
-                      ${take.toLocaleString()}/yr
-                    </span>
+                  <div className="flex justify-between text-sm mb-1.5">
+                    <span className="font-semibold text-gray-800">{st}</span>
+                    <span className="font-bold text-gray-900">${take.toLocaleString()}/yr</span>
                   </div>
-                  <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className={`h-full ${color} rounded-full`}
-                      style={{ width: `${(take / 100_000) * 100}%` }}
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: color,
+                      }}
                     />
                   </div>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-gray-400 mt-4 text-center">
-              * Estimates for single filer, standard deduction
+
+            <p className="text-xs text-gray-400 mt-6">
+              * Single filer, standard deduction. State estimates approximate.
             </p>
+
+            <div className="mt-5 pt-5 border-t border-gray-100">
+              <Link
+                href="/states"
+                className="text-blue-700 text-sm font-semibold hover:underline"
+              >
+                Compare all 50 states →
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── How It Works ─────────────────────────────────────────────────── */}
-      <section className="bg-gray-50 mt-16 py-14">
+      {/* ── How It Works ─────────────────────────────────────────────────────── */}
+      <section className="mt-16 py-14" style={{ background: "#f8fafc" }}>
         <div className="container-page">
-          <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">
-            How TakeHomeUSA Calculates Your Pay
-          </h2>
+          <div className="text-center mb-10">
+            <h2 className="text-2xl font-extrabold text-gray-900 mb-2">
+              Instant, Accurate, Free
+            </h2>
+            <p className="text-gray-500">
+              No spreadsheets. No signups. Just your real take-home pay.
+            </p>
+          </div>
+
           <div className="grid sm:grid-cols-3 gap-6">
             {[
               {
                 step: "1",
+                icon: "💰",
                 title: "Enter Your Salary",
-                desc: "Type any annual salary from $20,000 to $500,000. Our live preview updates as you type.",
+                desc: "Type any annual salary from $20,000 to $500,000. The live preview updates instantly as you type.",
               },
               {
                 step: "2",
-                title: "We Apply Real Tax Brackets",
-                desc: "We use the 2024 IRS federal tax brackets, Social Security (6.2%), and Medicare (1.45%) to calculate your exact liability.",
+                icon: "🧮",
+                title: "We Do the Math",
+                desc: "Real 2024 IRS progressive tax brackets. FICA (Social Security + Medicare). State tax (Texas = $0). Standard deduction applied.",
               },
               {
                 step: "3",
-                title: "See Your Full Breakdown",
-                desc: "Get your annual, monthly, bi-weekly, weekly, daily, and hourly take-home pay — plus your effective and marginal tax rates.",
+                icon: "📊",
+                title: "See Everything",
+                desc: "Annual, monthly, bi-weekly, weekly, daily, and hourly take-home pay. Plus effective rate, marginal rate, and a full tax breakdown.",
               },
-            ].map(({ step, title, desc }) => (
-              <div key={step} className="text-center">
-                <div className="w-12 h-12 rounded-full bg-blue-700 text-white text-xl font-bold flex items-center justify-center mx-auto mb-4">
+            ].map(({ step, icon, title, desc }) => (
+              <div
+                key={step}
+                className="bg-white rounded-2xl border border-gray-200 p-6 text-center shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="text-3xl mb-3">{icon}</div>
+                <div className="w-7 h-7 rounded-full bg-blue-700 text-white text-sm font-extrabold flex items-center justify-center mx-auto mb-3">
                   {step}
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2">{title}</h3>
+                <h3 className="font-extrabold text-gray-900 mb-2">{title}</h3>
                 <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>
               </div>
             ))}
@@ -320,39 +412,84 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Browse All Texas Salaries ─────────────────────────────────────── */}
+      {/* ── Full Salary Browse ────────────────────────────────────────────────── */}
       <section className="container-page mt-14">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          Browse All Texas Salary Calculations
-        </h2>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        <div className="flex items-end justify-between mb-4">
+          <h2 className="text-2xl font-extrabold text-gray-900">
+            Browse Every Texas Salary
+          </h2>
+          <Link href="/texas" className="text-blue-700 text-sm font-semibold hover:underline hidden sm:block">
+            Full Texas hub →
+          </Link>
+        </div>
+        <p className="text-gray-500 text-sm mb-6">
+          From $20,000 to $500,000 — click any amount for the complete 2024 tax breakdown.
+        </p>
+
+        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
           {POPULAR_SALARIES.map((amount) => (
             <Link
               key={amount}
               href={`/salary/${amount}-salary-after-tax-texas`}
-              className="text-center text-sm bg-white border border-gray-200 rounded-lg py-2 px-1 hover:border-blue-400 hover:text-blue-700 transition-colors"
+              className="text-center text-sm bg-white border border-gray-200 rounded-xl py-2.5 font-semibold hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 transition-all"
             >
-              ${(amount / 1000).toFixed(0)}K
+              ${(amount / 1_000).toFixed(0)}K
             </Link>
           ))}
         </div>
-        <p className="text-sm text-gray-500 mt-4 text-center">
-          Don&apos;t see yours?{" "}
+
+        <p className="text-sm text-gray-400 mt-4 text-center">
+          Need an exact number?{" "}
           <button
-            onClick={() =>
-              document
-                .querySelector("input")
-                ?.scrollIntoView({ behavior: "smooth" })
-            }
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             className="text-blue-700 underline hover:no-underline"
           >
-            Use the calculator above
-          </button>{" "}
-          for any salary from $20K to $500K.
+            Use the calculator ↑
+          </button>
         </p>
       </section>
 
-      {/* ── Bottom Ad ────────────────────────────────────────────────────── */}
+      {/* ── States preview ───────────────────────────────────────────────────── */}
+      <section className="container-page mt-14">
+        <h2 className="text-2xl font-extrabold text-gray-900 mb-6">
+          More States — Coming Soon
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[
+            { name: "Texas", href: "/texas", live: true, tax: "0% state tax", color: "border-green-300 bg-green-50" },
+            { name: "Florida", href: "/florida", live: false, tax: "0% state tax", color: "border-amber-200 bg-amber-50" },
+            { name: "New York", href: "/new-york", live: false, tax: "10.9% top rate", color: "border-gray-200 bg-gray-50" },
+            { name: "California", href: "/california", live: false, tax: "13.3% top rate", color: "border-gray-200 bg-gray-50", external: "https://californiasalaryaftertax.com" },
+          ].map(({ name, href, live, tax, color, external }) => (
+            <Link
+              key={name}
+              href={external || href}
+              {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+              className={`block border-2 rounded-2xl p-5 hover:shadow-md transition-all ${color}`}
+            >
+              <div className="flex items-start justify-between mb-2">
+                <span className="font-extrabold text-gray-900">{name}</span>
+                {live ? (
+                  <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold">Live</span>
+                ) : (
+                  <span className="text-xs bg-white text-gray-500 border border-gray-300 px-2 py-0.5 rounded-full">Soon</span>
+                )}
+              </div>
+              <p className="text-sm text-gray-500">{tax}</p>
+              <p className="text-xs text-blue-600 font-medium mt-2">
+                {live ? "Open calculator →" : "Learn more →"}
+              </p>
+            </Link>
+          ))}
+        </div>
+        <div className="mt-4 text-center">
+          <Link href="/states" className="text-blue-700 font-semibold text-sm hover:underline">
+            View all 50 states →
+          </Link>
+        </div>
+      </section>
+
+      {/* ── Bottom Ad ────────────────────────────────────────────────────────── */}
       <div className="container-page mt-10 mb-4">
         <div className="ad-slot ad-bottom" />
       </div>

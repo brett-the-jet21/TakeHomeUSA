@@ -147,7 +147,7 @@ export default function SalaryPage({ params }: { params: Params }) {
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: "https://www.takehomeusa.com/" },
-      { "@type": "ListItem", position: 2, name: `${state} Salary Calculator`, item: "https://www.takehomeusa.com/salary/100000-salary-after-tax-texas" },
+      { "@type": "ListItem", position: 2, name: `${state} Salary Calculator`, item: "https://www.takehomeusa.com/texas" },
       { "@type": "ListItem", position: 3, name: `$${amtFmt} After Tax in ${state}`, item: `https://www.takehomeusa.com/salary/${params.slug}` },
     ],
   };
@@ -178,7 +178,7 @@ export default function SalaryPage({ params }: { params: Params }) {
         <nav className="text-sm text-gray-500 mb-5 flex items-center gap-1.5 flex-wrap">
           <Link href="/" className="hover:text-blue-700 transition-colors">Home</Link>
           <span>/</span>
-          <Link href="/salary/100000-salary-after-tax-texas" className="hover:text-blue-700 transition-colors">
+          <Link href="/texas" className="hover:text-blue-700 transition-colors">
             Texas Salary Calculator
           </Link>
           <span>/</span>
