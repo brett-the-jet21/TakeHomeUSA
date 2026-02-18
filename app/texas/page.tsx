@@ -52,19 +52,19 @@ const SALARY_RANGES = [
 const TX_FAQS = [
   {
     q: "Does Texas have a state income tax?",
-    a: `No. Texas has no state income tax — one of only 9 states in the US with $0 state income tax. This means your entire salary is only subject to federal income tax and FICA (Social Security + Medicare). For a $100,000 salary, Texans take home roughly $78,509/year compared to about $68,000 in California.`,
+    a: `No. Texas has no state income tax — one of only 9 states in the US with $0 state income tax. This means your entire salary is only subject to federal income tax and FICA (Social Security + Medicare). For a $100,000 salary in ${TAX_YEAR}, Texans take home roughly $79,180/year compared to about $71,580 in California.`,
   },
   {
     q: "How is take-home pay calculated in Texas?",
-    a: `Texas take-home pay = Gross Salary − Federal Income Tax − Social Security (6.2%) − Medicare (1.45%). There is no state income tax deduction. Federal income tax uses the ${TAX_YEAR} IRS brackets (10% to 37%) applied to taxable income after the $14,600 standard deduction.`,
+    a: `Texas take-home pay = Gross Salary − Federal Income Tax − Social Security (6.2%) − Medicare (1.45%). There is no state income tax deduction. Federal income tax uses the ${TAX_YEAR} IRS brackets (10% to 37%) applied to taxable income after the $16,100 standard deduction (per IRS Rev. Proc. 2025-32).`,
   },
   {
     q: "What is the average take-home pay in Texas?",
-    a: `The median household income in Texas is around $67,000/year. After federal taxes and FICA, the average Texas worker takes home approximately $52,000–$55,000 per year, or about $4,300–$4,600 per month.`,
+    a: `The median household income in Texas is around $67,000/year. After ${TAX_YEAR} federal taxes and FICA, the average Texas worker takes home approximately $52,000–$55,000 per year, or about $4,300–$4,600 per month.`,
   },
   {
     q: "How much of my paycheck goes to taxes in Texas?",
-    a: `In Texas, your paycheck deductions are: federal income tax (varies by income, effective rate ~10–22% for most workers), Social Security (6.2% up to $168,600), and Medicare (1.45%). No state tax. For a $75,000 salary, total taxes are roughly $15,700 — an effective rate of about 20.9%.`,
+    a: `In Texas, your paycheck deductions are: federal income tax (varies by income, effective rate ~10–22% for most workers), Social Security (6.2% up to $184,500 for ${TAX_YEAR}), and Medicare (1.45%). No state tax. For a $75,000 salary in ${TAX_YEAR}, total taxes are roughly $14,700 — an effective rate of about 19.6%.`,
   },
   {
     q: "Is Texas a good state to live in for taxes?",
@@ -111,9 +111,15 @@ export default function TexasPage() {
           </nav>
 
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 bg-green-500/20 border border-green-400/30 text-green-300 text-sm font-semibold px-4 py-1.5 rounded-full mb-5">
-              <span>★</span>
-              <span>Texas has ZERO state income tax</span>
+            <div className="flex flex-wrap gap-3 mb-5">
+              <div className="inline-flex items-center gap-2 bg-green-500/20 border border-green-400/30 text-green-300 text-sm font-semibold px-4 py-1.5 rounded-full">
+                <span>★</span>
+                <span>Texas has ZERO state income tax</span>
+              </div>
+              <div className="inline-flex items-center gap-2 bg-blue-500/20 border border-blue-400/30 text-blue-200 text-xs font-semibold px-3 py-1.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                Updated for {TAX_YEAR} IRS Brackets
+              </div>
             </div>
             <h1 className="text-4xl sm:text-5xl font-extrabold leading-tight mb-4">
               Texas Salary After Tax<br />

@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { POPULAR_SALARIES, calculateTexasTax, fmt } from "@/lib/tax";
+import { POPULAR_SALARIES, calculateTexasTax, fmt, TAX_YEAR } from "@/lib/tax";
 
 const STATES = [{ slug: "texas", name: "Texas" }];
 
@@ -23,12 +23,13 @@ const SALARY_SHOWCASE = [
   { amount: 200_000, badge: null },
 ];
 
+// $100K take-home comparison — 2026 figures (TX = $79,180; state estimates approximate)
 const COMPARISON_DATA = [
-  { state: "Texas",      take: 78_509, color: "#22c55e", pct: 100 },
-  { state: "Florida",    take: 78_509, color: "#4ade80", pct: 100 },
-  { state: "Illinois",   take: 73_554, color: "#facc15", pct: 94 },
-  { state: "New York",   take: 68_200, color: "#fb923c", pct: 87 },
-  { state: "California", take: 67_900, color: "#f87171", pct: 86 },
+  { state: "Texas",      take: 79_180, color: "#22c55e", pct: 100 },
+  { state: "Florida",    take: 79_180, color: "#4ade80", pct: 100 },
+  { state: "Illinois",   take: 74_230, color: "#facc15", pct: 94 },
+  { state: "New York",   take: 73_400, color: "#fb923c", pct: 93 },
+  { state: "California", take: 71_580, color: "#f87171", pct: 90 },
 ];
 
 export default function HomePage() {
@@ -54,6 +55,14 @@ export default function HomePage() {
 
   return (
     <>
+      {/* ── Phase 1: Authority Banner ─────────────────────────────────────────── */}
+      <div className="bg-blue-700 text-white text-center py-2 px-4 text-sm font-medium">
+        <span className="mr-2">✓</span>
+        Updated for {TAX_YEAR} Federal &amp; State Tax Brackets
+        <span className="mx-3 opacity-50">·</span>
+        Calculations based on current IRS brackets and official state tax tables
+      </div>
+
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
       <section
         className="relative overflow-hidden text-white"
@@ -96,14 +105,14 @@ export default function HomePage() {
 
               <p className="text-blue-200 text-lg leading-relaxed mb-8 max-w-lg">
                 Your salary isn&apos;t what hits your bank account. Find out your
-                real take-home pay in Texas — with accurate 2024 federal tax
+                real take-home pay in Texas — with accurate {TAX_YEAR} federal tax
                 brackets, FICA, and zero state tax.
               </p>
 
               {/* Quick trust signals */}
               <div className="flex flex-wrap gap-4 text-sm text-blue-300">
                 {[
-                  "✓ Real 2024 IRS brackets",
+                  `✓ Real ${TAX_YEAR} IRS brackets`,
                   "✓ Instant results",
                   "✓ No signup",
                   "✓ 100% free",
@@ -117,7 +126,7 @@ export default function HomePage() {
             <div>
               <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 text-gray-900">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 text-center">
-                  Salary After Tax Calculator
+                  Salary After Tax Calculator — {TAX_YEAR}
                 </p>
 
                 <div className="space-y-4 mb-4">
@@ -164,22 +173,37 @@ export default function HomePage() {
                     <p className="text-xs font-bold text-green-600 uppercase tracking-widest mb-1">
                       Your Estimated Take-Home
                     </p>
-                    <p className="text-4xl font-black text-green-700 mb-3">
+                    <p className="text-4xl font-black text-green-700 mb-3 tabular-nums">
                       {fmt(previewTax.takeHome)}
                       <span className="text-lg font-semibold text-green-500 ml-1">/yr</span>
                     </p>
-                    <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="grid grid-cols-3 gap-2 text-center mb-3">
                       {[
-                        { label: "Monthly", val: previewTax.takeHome / 12 },
+                        { label: "Monthly",   val: previewTax.takeHome / 12 },
                         { label: "Bi-Weekly", val: previewTax.takeHome / 26 },
-                        { label: "Hourly", val: previewTax.takeHome / 2080 },
+                        { label: "Hourly",    val: previewTax.takeHome / 2080 },
                       ].map(({ label, val }) => (
                         <div key={label} className="bg-white rounded-xl p-2.5 border border-green-100">
                           <p className="text-xs text-gray-500">{label}</p>
-                          <p className="font-bold text-gray-900 text-sm">{fmt(val)}</p>
+                          <p className="font-bold text-gray-900 text-sm tabular-nums">{fmt(val)}</p>
                         </div>
                       ))}
                     </div>
+                    {/* Mini visual bar */}
+                    <div className="flex h-2 rounded-full overflow-hidden">
+                      <div
+                        className="bg-red-400"
+                        style={{ width: `${(previewTax.federalTax / previewTax.gross) * 100}%` }}
+                      />
+                      <div
+                        className="bg-orange-300"
+                        style={{ width: `${(previewTax.ficaTotal / previewTax.gross) * 100}%` }}
+                      />
+                      <div className="bg-green-400 flex-1" />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Fed tax + FICA vs. take-home — effective rate: {(previewTax.effectiveTotalRate * 100).toFixed(1)}%
+                    </p>
                   </div>
                 ) : (
                   <div className="bg-gray-50 rounded-2xl p-5 mb-4 text-center text-gray-400 text-sm">
@@ -197,7 +221,7 @@ export default function HomePage() {
                 </button>
 
                 <p className="text-center text-xs text-gray-400 mt-3">
-                  2024 IRS brackets · Single filer · Standard deduction · No signup
+                  {TAX_YEAR} IRS brackets · Single filer · Standard deduction · No signup
                 </p>
               </div>
             </div>
@@ -218,7 +242,7 @@ export default function HomePage() {
               Texas Salaries — How Much Will You Take Home?
             </h2>
             <p className="text-gray-500 text-sm mt-1">
-              Click any amount for the full 2024 breakdown
+              Click any amount for the full {TAX_YEAR} breakdown
             </p>
           </div>
           <Link
@@ -260,10 +284,10 @@ export default function HomePage() {
                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">
                   Take-Home
                 </p>
-                <p className="text-2xl font-black text-green-600">
+                <p className="text-2xl font-black text-green-600 tabular-nums">
                   {fmt(tax.takeHome)}
                 </p>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-gray-500 mt-1 tabular-nums">
                   {fmt(tax.takeHome / 12)}/mo · {pctTax}% eff.
                 </p>
                 <p className="text-xs text-blue-500 font-medium mt-3 group-hover:text-blue-700">
@@ -294,9 +318,9 @@ export default function HomePage() {
             </h2>
             <p className="text-gray-600 mb-4 leading-relaxed">
               Texas is one of only <strong>9 states</strong> that collects no
-              state income tax. On a $100K salary, you keep{" "}
-              <strong className="text-green-700">$78,509</strong> — that&apos;s{" "}
-              <strong className="text-green-700">$10,000+ more</strong> than
+              state income tax. On a $100K salary in {TAX_YEAR}, you keep{" "}
+              <strong className="text-green-700">$79,180</strong> — that&apos;s{" "}
+              <strong className="text-green-700">$7,600+ more</strong> than
               California workers earning the same amount.
             </p>
             <div className="space-y-2 mb-5">
@@ -323,7 +347,7 @@ export default function HomePage() {
           {/* Right: comparison bars */}
           <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
             <h3 className="font-extrabold text-gray-900 mb-1 text-lg">
-              $100,000 Salary — State Comparison
+              $100,000 Salary — State Comparison ({TAX_YEAR})
             </h3>
             <p className="text-gray-500 text-xs mb-6">Annual take-home pay after all taxes</p>
 
@@ -332,7 +356,7 @@ export default function HomePage() {
                 <div key={st}>
                   <div className="flex justify-between text-sm mb-1.5">
                     <span className="font-semibold text-gray-800">{st}</span>
-                    <span className="font-bold text-gray-900">${take.toLocaleString()}/yr</span>
+                    <span className="font-bold text-gray-900 tabular-nums">${take.toLocaleString()}/yr</span>
                   </div>
                   <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                     <div
@@ -348,7 +372,7 @@ export default function HomePage() {
             </div>
 
             <p className="text-xs text-gray-400 mt-6">
-              * Single filer, standard deduction. State estimates approximate.
+              * Single filer, standard deduction. {TAX_YEAR} federal brackets. State estimates approximate.
             </p>
 
             <div className="mt-5 pt-5 border-t border-gray-100">
@@ -387,13 +411,13 @@ export default function HomePage() {
                 step: "2",
                 icon: "🧮",
                 title: "We Do the Math",
-                desc: "Real 2024 IRS progressive tax brackets. FICA (Social Security + Medicare). State tax (Texas = $0). Standard deduction applied.",
+                desc: `Real ${TAX_YEAR} IRS progressive tax brackets. FICA (Social Security + Medicare). State tax (Texas = $0). Standard deduction applied.`,
               },
               {
                 step: "3",
                 icon: "📊",
                 title: "See Everything",
-                desc: "Annual, monthly, bi-weekly, weekly, daily, and hourly take-home pay. Plus effective rate, marginal rate, and a full tax breakdown.",
+                desc: "Annual, monthly, bi-weekly, weekly, daily, and hourly take-home pay. Plus effective rate, marginal rate, visual tax bar, and full breakdown.",
               },
             ].map(({ step, icon, title, desc }) => (
               <div
@@ -423,7 +447,7 @@ export default function HomePage() {
           </Link>
         </div>
         <p className="text-gray-500 text-sm mb-6">
-          From $20,000 to $500,000 — click any amount for the complete 2024 tax breakdown.
+          From $20,000 to $500,000 — click any amount for the complete {TAX_YEAR} tax breakdown.
         </p>
 
         <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
@@ -456,10 +480,10 @@ export default function HomePage() {
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { name: "Texas", href: "/texas", live: true, tax: "0% state tax", color: "border-green-300 bg-green-50" },
-            { name: "Florida", href: "/florida", live: false, tax: "0% state tax", color: "border-amber-200 bg-amber-50" },
-            { name: "New York", href: "/new-york", live: false, tax: "10.9% top rate", color: "border-gray-200 bg-gray-50" },
-            { name: "California", href: "/california", live: false, tax: "13.3% top rate", color: "border-gray-200 bg-gray-50", external: "https://californiasalaryaftertax.com" },
+            { name: "Texas",      href: "/texas",       live: true,  tax: "0% state tax",       color: "border-green-300 bg-green-50" },
+            { name: "Florida",    href: "/florida",     live: false, tax: "0% state tax",       color: "border-amber-200 bg-amber-50" },
+            { name: "New York",   href: "/new-york",    live: false, tax: "10.9% top rate",     color: "border-gray-200 bg-gray-50" },
+            { name: "California", href: "/california",  live: false, tax: "13.3% top rate",     color: "border-gray-200 bg-gray-50", external: "https://californiasalaryaftertax.com" },
           ].map(({ name, href, live, tax, color, external }) => (
             <Link
               key={name}

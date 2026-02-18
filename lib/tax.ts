@@ -1,19 +1,25 @@
-// ─── 2024 Federal Tax Constants (Single Filer) ───────────────────────────────
-export const TAX_YEAR = 2024;
+// ─── 2026 Federal Tax Constants (Single Filer) ───────────────────────────────
+// Source: IRS Revenue Procedure 2025-32 · SSA COLA 2026 announcement
+export const TAX_YEAR = 2026;
 
-const STANDARD_DEDUCTION = 14_600;
-const SS_WAGE_BASE = 168_600; // Social Security taxable wage base
+const STANDARD_DEDUCTION = 16_100;
+const SS_WAGE_BASE = 184_500; // Social Security taxable wage base
 const ADDL_MEDICARE_THRESHOLD = 200_000; // Additional 0.9% Medicare kicks in here
 
+// 2026 brackets per IRS Rev. Proc. 2025-32
+// OBBBA provided ~4% adjustment for 10%/12% brackets, ~2.3% for higher brackets
 const FEDERAL_BRACKETS: { min: number; max: number; rate: number }[] = [
-  { min: 0,       max: 11_600,   rate: 0.10 },
-  { min: 11_600,  max: 47_150,   rate: 0.12 },
-  { min: 47_150,  max: 100_525,  rate: 0.22 },
-  { min: 100_525, max: 191_950,  rate: 0.24 },
-  { min: 191_950, max: 243_725,  rate: 0.32 },
-  { min: 243_725, max: 609_350,  rate: 0.35 },
-  { min: 609_350, max: Infinity, rate: 0.37 },
+  { min: 0,       max: 12_400,   rate: 0.10 },
+  { min: 12_400,  max: 50_400,   rate: 0.12 },
+  { min: 50_400,  max: 105_700,  rate: 0.22 },
+  { min: 105_700, max: 201_775,  rate: 0.24 },
+  { min: 201_775, max: 256_225,  rate: 0.32 },
+  { min: 256_225, max: 640_600,  rate: 0.35 },
+  { min: 640_600, max: Infinity, rate: 0.37 },
 ];
+
+// Exported for use in display tables
+export const FEDERAL_BRACKETS_2026 = FEDERAL_BRACKETS;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface TaxResult {
