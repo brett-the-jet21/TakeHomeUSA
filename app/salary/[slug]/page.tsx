@@ -10,7 +10,7 @@ import {
 } from "@/lib/tax";
 
 // ─── Route Types ──────────────────────────────────────────────────────────────
-type Params = { slug?: string };
+type Params = Promise<{ slug?: string }>;
 
 const STATES: Record<string, { name: string; slug: string }> = {
   texas: { name: "Texas", slug: "texas" },
@@ -36,8 +36,9 @@ export function generateStaticParams() {
 }
 
 // ─── Per-Page SEO Metadata (with real numbers for high CTR) ──────────────────
-export function generateMetadata({ params }: { params: Params }): Metadata {
-  const parsed = parseSlug(params?.slug);
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+  const { slug } = await params;
+  const parsed = parseSlug(slug);
   if (!parsed) return {};
 
   const { amount, stateSlug } = parsed;
@@ -52,12 +53,12 @@ export function generateMetadata({ params }: { params: Params }): Metadata {
     title: `$${amtFmt} Salary After Tax in ${state} (${TAX_YEAR})`,
     description: `$${amtFmt}/yr in ${state} → $${takeFmt} take-home ($${moFmt}/mo). ${state} has NO state income tax! Effective rate: ${effRate}%. Full ${TAX_YEAR} federal tax breakdown, hourly & monthly pay.`,
     alternates: {
-      canonical: `https://www.takehomeusa.com/salary/${params.slug}`,
+      canonical: `https://www.takehomeusa.com/salary/${slug}`,
     },
     openGraph: {
       title: `$${amtFmt} Salary After Tax in ${state} | TakeHomeUSA`,
       description: `Take-home: $${takeFmt}/yr · $${moFmt}/mo · ${state} has no state income tax!`,
-      url: `https://www.takehomeusa.com/salary/${params.slug}`,
+      url: `https://www.takehomeusa.com/salary/${slug}`,
       siteName: "TakeHomeUSA",
       type: "website",
     },
@@ -70,8 +71,9 @@ export function generateMetadata({ params }: { params: Params }): Metadata {
 }
 
 // ─── Page Component ───────────────────────────────────────────────────────────
-export default function SalaryPage({ params }: { params: Params }) {
-  const parsed = parseSlug(params?.slug);
+export default async function SalaryPage({ params }: { params: Params }) {
+  const { slug } = await params;
+  const parsed = parseSlug(slug);
   if (!parsed) return notFound();
 
   const { amount, stateSlug } = parsed;
@@ -148,7 +150,7 @@ export default function SalaryPage({ params }: { params: Params }) {
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: "https://www.takehomeusa.com/" },
       { "@type": "ListItem", position: 2, name: `${state} Salary Calculator`, item: "https://www.takehomeusa.com/texas" },
-      { "@type": "ListItem", position: 3, name: `$${amtFmt} After Tax in ${state}`, item: `https://www.takehomeusa.com/salary/${params.slug}` },
+      { "@type": "ListItem", position: 3, name: `$${amtFmt} After Tax in ${state}`, item: `https://www.takehomeusa.com/salary/${slug}` },
     ],
   };
 
@@ -157,7 +159,7 @@ export default function SalaryPage({ params }: { params: Params }) {
     "@type": "WebPage",
     name: `$${amtFmt} Salary After Tax in ${state} (${TAX_YEAR})`,
     description: `Exact take-home pay for a $${amtFmt} salary in ${state} based on ${TAX_YEAR} federal tax brackets.`,
-    url: `https://www.takehomeusa.com/salary/${params.slug}`,
+    url: `https://www.takehomeusa.com/salary/${slug}`,
     isPartOf: { "@type": "WebSite", name: "TakeHomeUSA", url: "https://www.takehomeusa.com" },
   };
 

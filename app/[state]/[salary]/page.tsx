@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 
-type PageProps = { params: { state: string; salary: string } };
+type PageProps = { params: Promise<{ state: string; salary: string }> };
 
 const SUPPORTED_STATES = new Set(["texas"]);
 
@@ -17,9 +17,10 @@ function parseSalarySlug(slug: string): number | null {
  * Redirects (308) to the canonical SEO route: /salary/:amount-salary-after-tax-:state
  * This ensures only one URL is indexed by Google.
  */
-export default function Page({ params }: PageProps) {
-  const state = (params.state || "").toLowerCase();
-  const salary = parseSalarySlug(params.salary || "");
+export default async function Page({ params }: PageProps) {
+  const { state: stateParam, salary: salaryParam } = await params;
+  const state = (stateParam || "").toLowerCase();
+  const salary = parseSalarySlug(salaryParam || "");
 
   if (!salary) return notFound();
   if (!SUPPORTED_STATES.has(state)) return notFound();
