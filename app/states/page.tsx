@@ -8,7 +8,17 @@ export const metadata: Metadata = {
   alternates: { canonical: "https://www.takehomeusa.com/states" },
 };
 
-const ALL_STATES = [
+interface StateEntry {
+  name: string;
+  slug: string;
+  tax: string;
+  live: boolean;
+  noTax?: boolean;
+  comingSoon?: boolean;
+  external?: string;
+}
+
+const ALL_STATES: StateEntry[] = [
   { name: "Alabama",       slug: "alabama",        tax: "5%",    live: false },
   { name: "Alaska",        slug: "alaska",         tax: "0%",    live: false, noTax: true },
   { name: "Arizona",       slug: "arizona",        tax: "2.5%",  live: false },
@@ -59,7 +69,7 @@ const ALL_STATES = [
   { name: "West Virginia", slug: "west-virginia",  tax: "5.12%", live: false },
   { name: "Wisconsin",     slug: "wisconsin",      tax: "7.65%", live: false },
   { name: "Wyoming",       slug: "wyoming",        tax: "0%",    live: false, noTax: true },
-] as const;
+];
 
 export default function StatesPage() {
   return (
