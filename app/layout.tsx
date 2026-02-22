@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import Link from "next/link";
 import "./globals.css";
 import { TAX_YEAR } from "@/lib/tax";
@@ -37,6 +38,9 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true },
   },
+  other: {
+    "google-adsense-account": "ca-pub-8025748227928688",
+  },
 };
 
 // No-tax states for the nav dropdown — hardcoded so layout stays a server component
@@ -64,9 +68,7 @@ const POPULAR_TAXED_NAV = [
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        {/* <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_PUBLISHER_ID" crossOrigin="anonymous" /> */}
-      </head>
+      <head />
       <body className="flex flex-col min-h-screen bg-white">
         <script
           type="application/ld+json"
@@ -286,6 +288,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
         </footer>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8025748227928688"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
