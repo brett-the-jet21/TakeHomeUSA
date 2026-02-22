@@ -1,14 +1,12 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { STATES_BY_SLUG, ALL_STATES } from "@/lib/states";
+import { calcTaxBreakdown, formatCurrency, formatPct } from "@/lib/tax";
 
 type Params = { slug?: string };
 
-const STATES: Record<string, { name: string; slug: string }> = {
-  texas: { name: "Texas", slug: "texas" },
-  // Add more states later
-};
-
 function parseSlug(slug: unknown): { amount: number; stateSlug: string } | null {
-  // Guard: during prerender, params/slug can be undefined in some edge cases
   if (typeof slug !== "string") return null;
 
   // Expected: "{amount}-salary-after-tax-{state}"
@@ -18,31 +16,32 @@ function parseSlug(slug: unknown): { amount: number; stateSlug: string } | null 
   const amount = Number(m[1]);
   const stateSlug = m[2];
 
-  if (!Number.isFinite(amount) || amount < 1000 || amount > 2000000) return null;
-  if (!STATES[stateSlug]) return null;
+  if (!Number.isFinite(amount) || amount < 20_000 || amount > 500_000) return null;
+  if (!STATES_BY_SLUG[stateSlug]) return null;
 
   return { amount, stateSlug };
 }
 
 export function generateStaticParams() {
-  // Starter set: Texas pages (keeps build fast)
   const out: { slug: string }[] = [];
-  for (let a = 30000; a <= 300000; a += 5000) {
-    out.push({ slug: `${a}-salary-after-tax-texas` });
+  for (const stateInfo of ALL_STATES) {
+    for (let a = 30_000; a <= 300_000; a += 5_000) {
+      out.push({ slug: `${a}-salary-after-tax-${stateInfo.slug}` });
+    }
   }
   return out;
 }
 
-export function generateMetadata({ params }: { params: Params }) {
+export function generateMetadata({ params }: { params: Params }): Metadata {
   const parsed = parseSlug(params?.slug);
   if (!parsed) return {};
 
-  const state = STATES[parsed.stateSlug].name;
+  const stateInfo = STATES_BY_SLUG[parsed.stateSlug];
   const amountFmt = parsed.amount.toLocaleString("en-US");
 
   return {
-    title: `$${amountFmt} Salary After Tax in ${state} | TakeHomeUSA`,
-    description: `Estimate take-home pay for a $${amountFmt} salary in ${state}. See after-tax income and effective tax rate.`,
+    title: `$${amountFmt} Salary After Tax in ${stateInfo.name} (2026) | TakeHomeUSA`,
+    description: `Estimate take-home pay for a $${amountFmt} salary in ${stateInfo.name}. See after-tax income and effective tax rate. Updated for 2026 brackets.`,
     alternates: { canonical: `https://www.takehomeusa.com/salary/${params.slug}` },
   };
 }
@@ -51,29 +50,169 @@ export default function SalaryPage({ params }: { params: Params }) {
   const parsed = parseSlug(params?.slug);
   if (!parsed) return notFound();
 
-  const state = STATES[parsed.stateSlug].name;
+  const stateInfo = STATES_BY_SLUG[parsed.stateSlug];
   const amountFmt = parsed.amount.toLocaleString("en-US");
+  const tax = calcTaxBreakdown(parsed.amount, stateInfo.taxRate);
+
+  const periods = [
+    { label: "Annual", value: tax.takeHomePay },
+    { label: "Monthly", value: tax.takeHomePay / 12 },
+    { label: "Bi-weekly", value: tax.takeHomePay / 26 },
+    { label: "Weekly", value: tax.takeHomePay / 52 },
+    { label: "Hourly", value: tax.takeHomePay / 2080 },
+  ];
 
   return (
-    <main className="min-h-screen p-8 flex items-start justify-center">
-      <div className="w-full max-w-3xl">
-        <h1 className="text-4xl font-bold">
-          ${amountFmt} Salary After Tax in {state}
-        </h1>
-        <p className="mt-3 text-lg opacity-80">
-          Live route ✅ Next: plug in the real tax calculation + show a full breakdown.
-        </p>
+    <div className="min-h-screen flex flex-col">
+      {/* Site header */}
+      <header className="border-b px-6 py-3 flex items-center justify-between">
+        <Link href="/" className="font-bold text-lg">TakeHomeUSA</Link>
+        <nav aria-label="Main navigation" className="flex gap-4 text-sm">
+          <Link href="/states" className="underline">State Guides</Link>
+          <Link href="/about" className="underline">About</Link>
+        </nav>
+      </header>
 
-        <div className="mt-8 rounded border p-6">
-          <div className="text-sm opacity-70">Inputs</div>
-          <div className="mt-2 font-medium">Salary: ${amountFmt}</div>
-          <div className="font-medium">State: {state}</div>
-        </div>
+      <main className="flex-1 p-6 flex justify-center">
+        <div className="w-full max-w-3xl">
+          {/* Breadcrumb */}
+          <nav aria-label="Breadcrumb" className="text-sm opacity-70 mb-4">
+            <Link href="/" className="underline">Home</Link>
+            <span className="mx-2">/</span>
+            <Link href="/states" className="underline">States</Link>
+            <span className="mx-2">/</span>
+            <Link
+              href={`/${stateInfo.slug}/100000-salary-after-tax`}
+              className="underline"
+            >
+              {stateInfo.name}
+            </Link>
+            <span className="mx-2">/</span>
+            <span>${amountFmt}</span>
+          </nav>
 
-        <div className="mt-8">
-          <a className="underline" href="/">← Back to calculator</a>
+          <h1 className="text-4xl font-bold mb-2">
+            ${amountFmt} Salary After Tax in {stateInfo.name}
+          </h1>
+          <p className="text-sm opacity-60 mb-8">
+            2026 tax brackets · Single filer · Standard deduction · {stateInfo.taxNote}
+          </p>
+
+          {/* Take-home by period */}
+          <section aria-label="Take-home pay by pay period" className="mb-8">
+            <h2 className="text-xl font-semibold mb-3">Take-Home Pay</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {periods.map((p) => (
+                <div key={p.label} className="rounded border p-3 text-center">
+                  <div className="text-xs opacity-60 mb-1">{p.label}</div>
+                  <div className="font-semibold text-sm">{formatCurrency(p.value)}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Tax breakdown table */}
+          <section aria-label="Tax breakdown" className="mb-8">
+            <h2 className="text-xl font-semibold mb-3">Tax Breakdown</h2>
+            <table
+              className="w-full text-sm border-collapse"
+              aria-label={`Tax breakdown for $${amountFmt} in ${stateInfo.name}`}
+            >
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 pr-4">Category</th>
+                  <th className="text-right py-2 pr-4">Annual Amount</th>
+                  <th className="text-right py-2">Effective Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b">
+                  <td className="py-2 pr-4">Gross Salary</td>
+                  <td className="text-right pr-4">{formatCurrency(tax.grossSalary)}</td>
+                  <td className="text-right">—</td>
+                </tr>
+                <tr className="border-b opacity-70">
+                  <td className="py-2 pr-4 pl-4">− Standard Deduction</td>
+                  <td className="text-right pr-4">−{formatCurrency(tax.standardDeduction)}</td>
+                  <td className="text-right">—</td>
+                </tr>
+                <tr className="border-b font-medium">
+                  <td className="py-2 pr-4">Federal Taxable Income</td>
+                  <td className="text-right pr-4">{formatCurrency(tax.federalTaxableIncome)}</td>
+                  <td className="text-right">—</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-2 pr-4">Federal Income Tax</td>
+                  <td className="text-right pr-4">−{formatCurrency(tax.federalTax)}</td>
+                  <td className="text-right">{formatPct(tax.effectiveFederalRate)}</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-2 pr-4">Social Security (6.2%)</td>
+                  <td className="text-right pr-4">−{formatCurrency(tax.socialSecurityTax)}</td>
+                  <td className="text-right">{formatPct(tax.socialSecurityTax / tax.grossSalary)}</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-2 pr-4">Medicare (1.45%)</td>
+                  <td className="text-right pr-4">−{formatCurrency(tax.medicareTax)}</td>
+                  <td className="text-right">{formatPct(tax.medicareTax / tax.grossSalary)}</td>
+                </tr>
+                {tax.additionalMedicareTax > 0 && (
+                  <tr className="border-b">
+                    <td className="py-2 pr-4">Additional Medicare (0.9%)</td>
+                    <td className="text-right pr-4">−{formatCurrency(tax.additionalMedicareTax)}</td>
+                    <td className="text-right">{formatPct(tax.additionalMedicareTax / tax.grossSalary)}</td>
+                  </tr>
+                )}
+                {tax.stateTax > 0 ? (
+                  <tr className="border-b">
+                    <td className="py-2 pr-4">{stateInfo.name} State Income Tax</td>
+                    <td className="text-right pr-4">−{formatCurrency(tax.stateTax)}</td>
+                    <td className="text-right">{formatPct(tax.stateTax / tax.grossSalary)}</td>
+                  </tr>
+                ) : (
+                  <tr className="border-b opacity-60">
+                    <td className="py-2 pr-4">{stateInfo.name} State Income Tax</td>
+                    <td className="text-right pr-4">$0</td>
+                    <td className="text-right">0.0%</td>
+                  </tr>
+                )}
+                <tr className="font-semibold text-base">
+                  <td className="py-3 pr-4">Take-Home Pay</td>
+                  <td className="text-right pr-4">{formatCurrency(tax.takeHomePay)}</td>
+                  <td className="text-right">{formatPct(1 - tax.effectiveTotalRate)}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="mt-2 text-xs opacity-50">
+              Effective total tax rate: {formatPct(tax.effectiveTotalRate)} of gross salary
+            </p>
+          </section>
+
+          {/* Assumptions box */}
+          <section className="rounded border p-4 text-sm opacity-70 mb-8">
+            <h2 className="font-semibold mb-1">Assumptions</h2>
+            <ul className="list-disc list-inside space-y-0.5">
+              <li>Tax year: 2026</li>
+              <li>Filing status: Single</li>
+              <li>Deduction: Standard ($16,100)</li>
+              <li>No pre-tax contributions or tax credits applied</li>
+              <li>State tax: {stateInfo.taxNote}</li>
+            </ul>
+          </section>
+
+          <div className="flex flex-wrap gap-4 text-sm">
+            <Link href="/" className="underline">← Back to Calculator</Link>
+            <Link href="/states" className="underline">All State Guides</Link>
+            <Link href="/about" className="underline">How We Calculate</Link>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+
+      <footer className="border-t px-6 py-4 text-xs opacity-60 flex gap-4">
+        <Link href="/about">About</Link>
+        <Link href="/states">State Guides</Link>
+        <Link href="/privacy">Privacy Policy</Link>
+      </footer>
+    </div>
   );
 }
