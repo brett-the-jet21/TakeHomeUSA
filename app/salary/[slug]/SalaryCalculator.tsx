@@ -28,7 +28,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
 
   const amount = useMemo(() => {
     const n = Number(salaryInput.replace(/[^0-9]/g, ""));
-    return n >= 1_000 && n <= 999_999_999_999 ? n : initialAmount;
+    return n >= 1_000 && n <= 100_000_000_000_000 ? n : initialAmount;
   }, [salaryInput, initialAmount]);
 
   const tax = useMemo(() => calculateTax(stateConfig, amount), [stateConfig, amount]);
@@ -39,7 +39,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
 
   const handleNavigate = useCallback(() => {
     const n = Number(salaryInput.replace(/[^0-9]/g, ""));
-    if (n >= 1_000 && n <= 999_999_999_999) {
+    if (n >= 1_000 && n <= 100_000_000_000_000) {
       router.push(`/salary/${n}-salary-after-tax-${stateConfig.slug}`);
     }
   }, [salaryInput, router, stateConfig.slug]);
@@ -67,14 +67,18 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
   ];
 
   // Scale nearby steps to the magnitude of the current amount
-  const nearbyStep = amount >= 1_000_000_000 ? 100_000_000
-    : amount >= 100_000_000 ? 10_000_000
-    : amount >= 10_000_000  ? 1_000_000
-    : amount >= 1_000_000   ? 100_000
+  const nearbyStep = amount >= 10_000_000_000_000 ? 1_000_000_000_000
+    : amount >= 1_000_000_000_000 ? 100_000_000_000
+    : amount >= 100_000_000_000   ? 10_000_000_000
+    : amount >= 10_000_000_000    ? 1_000_000_000
+    : amount >= 1_000_000_000     ? 100_000_000
+    : amount >= 100_000_000       ? 10_000_000
+    : amount >= 10_000_000        ? 1_000_000
+    : amount >= 1_000_000         ? 100_000
     : 10_000;
   const nearbyLinks = [-3, -2, -1, 1, 2, 3]
     .map((d) => amount + d * nearbyStep)
-    .filter((a) => a >= 20_000 && a <= 999_999_999_999);
+    .filter((a) => a >= 20_000 && a <= 100_000_000_000_000);
 
   const popularLinks = [
     50_000, 60_000, 75_000, 80_000, 90_000, 100_000,

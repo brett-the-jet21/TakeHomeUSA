@@ -44,7 +44,7 @@ export default function HomePageClient() {
 
   const previewTax = useMemo(() => {
     const n = Number(cleaned);
-    if (!n || n < 1_000 || n > 999_999_999_999) return null;
+    if (!n || n < 1_000 || n > 100_000_000_000_000) return null;
     return calculateTax(cfg, n);
   }, [cleaned, cfg]);
 
