@@ -14,7 +14,7 @@ function parseSlug(slug: unknown) {
   if (!m) return null;
   const amount = Number(m[1]);
   const stateSlug = m[2];
-  if (!Number.isFinite(amount) || amount < 1_000 || amount > 2_000_000) return null;
+  if (!Number.isFinite(amount) || amount < 1_000 || amount > 999_999_999_999) return null;
   const stateConfig = STATE_BY_SLUG.get(stateSlug);
   if (!stateConfig) return null;
   return { amount, stateSlug, stateConfig };
