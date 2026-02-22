@@ -21,20 +21,37 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   if (!cfg) return {};
 
   const { name, noTax, topRateDisplay, slug } = cfg;
-  const taxLine = noTax
-    ? `${name} has NO state income tax — keep more of every paycheck.`
-    : `${name} state income tax up to ${topRateDisplay}.`;
+
+  // Compute real take-home numbers for the metadata description
+  const t75  = calculateTax(cfg, 75_000);
+  const t100 = calculateTax(cfg, 100_000);
+  const take75  = Math.round(t75.takeHome).toLocaleString("en-US");
+  const take100 = Math.round(t100.takeHome).toLocaleString("en-US");
+  const mo100   = Math.round(t100.takeHome / 12).toLocaleString("en-US");
+
+  const title = noTax
+    ? `${name} Salary Calculator ${TAX_YEAR} — $0 State Tax | Free`
+    : `${name} Salary After Tax ${TAX_YEAR} — Up to ${topRateDisplay} State Tax`;
+
+  const description = noTax
+    ? `${name} has NO state income tax. $100K salary → $${take100}/yr ($${mo100}/mo). $75K → $${take75}/yr. Real ${TAX_YEAR} brackets, instant, free.`
+    : `$100K salary in ${name} → $${take100}/yr take-home ($${mo100}/mo). $75K → $${take75}/yr. State tax up to ${topRateDisplay}. Free ${TAX_YEAR} breakdown.`;
 
   return {
-    title: `${name} Salary After Tax Calculator (${TAX_YEAR}) — All Salaries`,
-    description: `${taxLine} See your exact take-home pay for any ${name} salary in ${TAX_YEAR}. Full federal + state tax breakdown, monthly pay, and hourly rate.`,
+    title,
+    description,
     alternates: { canonical: `https://www.takehomeusa.com/${slug}` },
     openGraph: {
       title: `${name} Salary After Tax Calculator (${TAX_YEAR})`,
-      description: taxLine,
+      description,
       url: `https://www.takehomeusa.com/${slug}`,
       siteName: "TakeHomeUSA",
       type: "website",
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
     },
   };
 }

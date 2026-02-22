@@ -44,20 +44,22 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const amtFmt = amount.toLocaleString("en-US");
   const takeFmt = Math.round(tax.takeHome).toLocaleString("en-US");
   const moFmt = Math.round(tax.takeHome / 12).toLocaleString("en-US");
+  const biFmt = Math.round(tax.takeHome / 26).toLocaleString("en-US");
   const effRate = (tax.effectiveTotalRate * 100).toFixed(1);
-  const noTaxNote = noTax
-    ? ` ${stateName} has NO state income tax!`
-    : ` ${stateName} top state tax: ${topRateDisplay}.`;
+
+  const desc = noTax
+    ? `A $${amtFmt} salary in ${stateName} = $${takeFmt}/yr take-home ($${moFmt}/mo · $${biFmt} biweekly). Zero state income tax. Free ${TAX_YEAR} breakdown.`
+    : `A $${amtFmt} salary in ${stateName} = $${takeFmt}/yr take-home ($${moFmt}/mo · $${biFmt} biweekly). State tax up to ${topRateDisplay}. Free ${TAX_YEAR} federal + state breakdown.`;
 
   return {
-    title: `$${amtFmt} Salary After Tax in ${stateName} (${TAX_YEAR})`,
-    description: `$${amtFmt}/yr in ${stateName} → $${takeFmt} take-home ($${moFmt}/mo).${noTaxNote} Effective rate: ${effRate}%. Full ${TAX_YEAR} federal tax breakdown.`,
+    title: `$${amtFmt} After Tax in ${stateName} — $${takeFmt} Take-Home (${TAX_YEAR})`,
+    description: desc,
     alternates: {
       canonical: `https://www.takehomeusa.com/salary/${slug}`,
     },
     openGraph: {
-      title: `$${amtFmt} Salary After Tax in ${stateName} | TakeHomeUSA`,
-      description: `Take-home: $${takeFmt}/yr · $${moFmt}/mo${noTax ? ` · ${stateName} has no state income tax!` : ""}`,
+      title: `$${amtFmt} After Tax in ${stateName} — $${takeFmt} Take-Home | TakeHomeUSA`,
+      description: desc,
       url: `https://www.takehomeusa.com/salary/${slug}`,
       siteName: "TakeHomeUSA",
       type: "website",
@@ -65,7 +67,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     twitter: {
       card: "summary",
       title: `$${amtFmt} After Tax in ${stateName}: $${takeFmt}/yr`,
-      description: `$${moFmt}/month take-home. See full ${TAX_YEAR} breakdown.`,
+      description: `$${moFmt}/mo · $${biFmt} biweekly. ${noTax ? `${stateName} has no state income tax.` : `State tax up to ${topRateDisplay}.`} Free ${TAX_YEAR} breakdown.`,
     },
   };
 }

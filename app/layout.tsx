@@ -68,6 +68,30 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_PUBLISHER_ID" crossOrigin="anonymous" /> */}
       </head>
       <body className="flex flex-col min-h-screen bg-white">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "TakeHomeUSA",
+              url: "https://www.takehomeusa.com",
+              description: `Free salary after-tax calculator for all 50 US states. ${TAX_YEAR} IRS tax brackets.`,
+            }),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "TakeHomeUSA",
+              url: "https://www.takehomeusa.com",
+              description: "Free, accurate salary after-tax calculators for all 50 US states.",
+            }),
+          }}
+        />
 
         {/* ── Header ──────────────────────────────────────────────────────────── */}
         <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">

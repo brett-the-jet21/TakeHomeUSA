@@ -3,16 +3,21 @@ import Link from "next/link";
 import { calculateTexasTax, fmt, pct, TAX_YEAR } from "@/lib/tax";
 
 export const metadata: Metadata = {
-  title: `Texas Salary After Tax Calculator (${TAX_YEAR}) — All Salaries`,
+  title: `Texas Salary Calculator ${TAX_YEAR} — $0 State Tax | Free`,
   description:
-    `Texas has NO state income tax. See your exact take-home pay for any salary in Texas for ${TAX_YEAR}. Full federal tax breakdown, monthly pay, hourly rate, and effective tax rate.`,
+    `Texas has NO state income tax. $100K salary → $79,180/yr ($6,598/mo). $75K → $59,785/yr. $50K → $41,283/yr. All salaries $20K–$500K. Free ${TAX_YEAR} breakdown.`,
   alternates: { canonical: "https://www.takehomeusa.com/texas" },
   openGraph: {
     title: `Texas Salary After Tax Calculator (${TAX_YEAR})`,
-    description: "Texas = $0 state income tax. Find your exact take-home pay instantly.",
+    description: "Texas = $0 state income tax. $100K → $79,180/yr take-home. $75K → $59,785/yr. Free, instant.",
     url: "https://www.takehomeusa.com/texas",
     siteName: "TakeHomeUSA",
     type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: `Texas Salary Calculator ${TAX_YEAR} — $0 State Tax`,
+    description: "$100K → $79,180/yr take-home. $75K → $59,785/yr. Free Texas salary after tax calculator.",
   },
 };
 
