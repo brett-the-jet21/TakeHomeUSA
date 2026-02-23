@@ -1,3 +1,5 @@
+export const dynamic = "force-static";
+
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { calculateTax, fmt, pct, TAX_YEAR } from "@/lib/tax";
