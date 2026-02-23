@@ -1,7 +1,10 @@
+export const dynamic = "force-static";
+
 import type { MetadataRoute } from "next";
 import { ALL_STATE_CONFIGS, getStateSalaryAmounts } from "@/lib/states";
 
 const BASE = "https://www.takehomeusa.com";
+const LAST_MODIFIED = "2026-01-01T00:00:00.000Z";
 
 // Salary amounts that get traffic bumps (round numbers people search for)
 const HIGH_PRIORITY_AMOUNTS = new Set([
@@ -23,15 +26,13 @@ function salaryPriority(amount: number, isNoTax: boolean): number {
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date().toISOString();
-
   // ── Core pages ─────────────────────────────────────────────────────────────
   const corePages: MetadataRoute.Sitemap = [
-    { url: BASE,              lastModified: now, changeFrequency: "weekly",  priority: 1.0  },
-    { url: `${BASE}/texas`,   lastModified: now, changeFrequency: "monthly", priority: 0.95 },
-    { url: `${BASE}/states`,  lastModified: now, changeFrequency: "monthly", priority: 0.85 },
-    { url: `${BASE}/about`,   lastModified: now, changeFrequency: "yearly",  priority: 0.50 },
-    { url: `${BASE}/privacy`, lastModified: now, changeFrequency: "yearly",  priority: 0.40 },
+    { url: BASE,              lastModified: LAST_MODIFIED, changeFrequency: "weekly",  priority: 1.0  },
+    { url: `${BASE}/texas`,   lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.95 },
+    { url: `${BASE}/states`,  lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.85 },
+    { url: `${BASE}/about`,   lastModified: LAST_MODIFIED, changeFrequency: "yearly",  priority: 0.50 },
+    { url: `${BASE}/privacy`, lastModified: LAST_MODIFIED, changeFrequency: "yearly",  priority: 0.40 },
   ];
 
   // ── State hub pages + salary pages ────────────────────────────────────────
@@ -53,7 +54,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       const hubPriority = noTax ? 0.90 : 0.80;
       stateHubPages.push({
         url: `${BASE}/${slug}`,
-        lastModified: now,
+        lastModified: LAST_MODIFIED,
         changeFrequency: "monthly",
         priority: hubPriority,
       });
@@ -63,7 +64,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     for (const amount of getStateSalaryAmounts(slug)) {
       salaryPages.push({
         url: `${BASE}/salary/${amount}-salary-after-tax-${slug}`,
-        lastModified: now,
+        lastModified: LAST_MODIFIED,
         changeFrequency: "monthly",
         priority: salaryPriority(amount, noTax),
       });
