@@ -1,3 +1,5 @@
+export const dynamic = "force-static";
+
 import type { Metadata } from "next";
 import Link from "next/link";
 import { calculateTexasTax, fmt, pct, TAX_YEAR } from "@/lib/tax";

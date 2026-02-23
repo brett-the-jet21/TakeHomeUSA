@@ -1,3 +1,5 @@
+export const dynamic = "force-static";
+
 import { redirect, notFound } from "next/navigation";
 import { STATE_BY_SLUG } from "@/lib/states";
 

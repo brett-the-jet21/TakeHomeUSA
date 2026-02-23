@@ -1,3 +1,5 @@
+export const dynamic = "force-static";
+
 import type { Metadata } from "next";
 import Link from "next/link";
 import { STATES_DIRECTORY, ALL_STATE_CONFIGS } from "@/lib/states";

@@ -1,3 +1,5 @@
+export const dynamic = "force-static";
+
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TAX_YEAR } from "@/lib/tax";
