@@ -258,8 +258,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {POPULAR_TAXED_NAV.map((s) => (
                   <li key={s.slug}>
                     <Link
-                      href={s.external ?? `/${s.slug}`}
-                      {...(s.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                      href={`/${s.slug}`}
                       className="hover:text-white transition-colors"
                     >
                       {s.name} — {s.rate}
