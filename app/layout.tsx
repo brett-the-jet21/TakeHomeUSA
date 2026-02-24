@@ -58,7 +58,7 @@ const NO_TAX_NAV = [
 
 const POPULAR_TAXED_NAV = [
   { name: "New York",    slug: "new-york",    rate: "10.9%" },
-  { name: "California",  slug: "california",  rate: "13.3%", external: "https://californiasalaryaftertax.com" },
+  { name: "California",  slug: "california",  rate: "13.3%" },
   { name: "Illinois",    slug: "illinois",    rate: "4.95%" },
   { name: "Colorado",    slug: "colorado",    rate: "4.4%"  },
   { name: "Virginia",    slug: "virginia",    rate: "5.75%" },
@@ -148,8 +148,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       {POPULAR_TAXED_NAV.map((s) => (
                         <Link
                           key={s.slug}
-                          href={s.external ?? `/${s.slug}`}
-                          {...(s.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                          href={`/${s.slug}`}
                           className="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-blue-50 text-sm text-gray-700 hover:text-blue-700 transition-colors"
                         >
                           <span>{s.name}</span>

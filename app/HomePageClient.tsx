@@ -49,8 +49,11 @@ export default function HomePageClient() {
   }, [cleaned, cfg]);
 
   function handleCalculate() {
-    if (!cleaned || Number(cleaned) < 1_000) return;
-    router.push(`/salary/${cleaned}-salary-after-tax-${stateSlug}`);
+    const raw = Number(cleaned);
+    if (!raw || raw < 1_000) return;
+    const step = stateSlug === "texas" ? 1_000 : 5_000;
+    const rounded = Math.max(20_000, Math.min(500_000, Math.round(raw / step) * step));
+    router.push(`/salary/${rounded}-salary-after-tax-${stateSlug}`);
   }
 
   const { name: stateName, noTax, topRateDisplay } = cfg;
@@ -466,12 +469,10 @@ export default function HomePageClient() {
             <div className="flex flex-wrap gap-2">
               {FEATURED_TAXED.map((slug) => {
                 const s = STATE_BY_SLUG.get(slug)!;
-                const href = s.externalSite ? s.externalSite : `/${slug}`;
                 return (
                   <Link
                     key={slug}
-                    href={href}
-                    {...(s.externalSite ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    href={`/${slug}`}
                     className="inline-flex items-center gap-1 bg-white border border-blue-200 text-blue-800 text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-colors"
                   >
                     {s.name} — {s.topRateDisplay}

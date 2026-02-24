@@ -27,8 +27,6 @@ export interface StateTaxConfig {
   description: string;
   /** Tailwind gradient classes for the hub hero. */
   heroGradient: string;
-  /** Whether this is the California external-referral state. */
-  externalSite?: string;
 }
 
 // ─── State Tax Calculator ─────────────────────────────────────────────────────
@@ -248,13 +246,11 @@ export const ALL_STATE_CONFIGS: StateTaxConfig[] = [
     ],
   },
   {
-    // California has an external calculator site — still include for salary pages
     name: "California", abbr: "CA", slug: "california",
     noTax: false, topRateDisplay: "13.3%", deduction: 5_202,
     additionalRate: 0.011, // SDI 1.1% on all wages
     description: "California has the highest state income tax in the US — up to 13.3%.",
     heroGradient: "from-blue-900 via-blue-800 to-yellow-700",
-    externalSite: "https://californiasalaryaftertax.com",
     brackets: [
       [0,        10_756,   0.010],
       [10_756,   25_499,   0.020],
@@ -569,5 +565,4 @@ export const STATES_DIRECTORY = ALL_STATE_CONFIGS.map((s) => ({
   slug: s.slug,
   tax: s.noTax ? "0%" : s.topRateDisplay,
   noTax: s.noTax,
-  externalSite: s.externalSite,
 })).sort((a, b) => a.name.localeCompare(b.name));

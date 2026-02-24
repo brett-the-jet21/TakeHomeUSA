@@ -13,7 +13,7 @@ type Params = Promise<{ state: string }>;
 // Texas → app/texas/page.tsx; California → app/california/page.tsx (both take precedence)
 export function generateStaticParams() {
   return ALL_STATE_CONFIGS
-    .filter((s) => s.slug !== "texas" && s.slug !== "california")
+    .filter((s) => s.slug !== "texas")
     .map((s) => ({ state: s.slug }));
 }
 
@@ -63,7 +63,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 const SALARY_RANGES = [
   { label: "Entry Level",  icon: "🌱", desc: "$20K – $49K",   salaries: [20_000, 25_000, 30_000, 35_000, 40_000, 45_000] },
   { label: "Mid Career",   icon: "📈", desc: "$50K – $74K",   salaries: [50_000, 55_000, 60_000, 65_000, 70_000, 75_000] },
-  { label: "Experienced",  icon: "💼", desc: "$75K – $99K",   salaries: [75_000, 80_000, 85_000, 90_000, 95_000, 99_000] },
+  { label: "Experienced",  icon: "💼", desc: "$75K – $100K",  salaries: [75_000, 80_000, 85_000, 90_000, 95_000, 100_000] },
   { label: "Senior",       icon: "⭐", desc: "$100K – $149K", salaries: [100_000, 110_000, 120_000, 125_000, 130_000, 140_000] },
   { label: "Six Figures+", icon: "🚀", desc: "$150K – $300K", salaries: [150_000, 175_000, 200_000, 225_000, 250_000, 300_000] },
 ];

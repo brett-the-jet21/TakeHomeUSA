@@ -76,13 +76,8 @@ export default function StatesPage() {
       <section className="container-page mb-14">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">All 50 States</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {STATES_DIRECTORY.map((state) => {
-            const href = state.externalSite
-              ? state.externalSite
-              : `/${state.slug}`;
-            const isExternal = !!state.externalSite;
-
-            const card = (
+          {STATES_DIRECTORY.map((state) => (
+            <Link key={state.slug} href={`/${state.slug}`}>
               <div className="rounded-xl border border-blue-300 bg-blue-50 hover:shadow-md hover:border-blue-400 cursor-pointer transition-all p-4">
                 <div className="flex items-start justify-between mb-2">
                   <span className="font-semibold text-gray-900 text-sm">{state.name}</span>
@@ -101,22 +96,10 @@ export default function StatesPage() {
                     {state.tax} state tax
                   </span>
                 </div>
-                <p className="text-xs text-blue-600 font-medium mt-2">
-                  {isExternal ? "View calculator ↗" : "View calculator →"}
-                </p>
+                <p className="text-xs text-blue-600 font-medium mt-2">View calculator →</p>
               </div>
-            );
-
-            return isExternal ? (
-              <a key={state.slug} href={href} target="_blank" rel="noopener noreferrer">
-                {card}
-              </a>
-            ) : (
-              <Link key={state.slug} href={href}>
-                {card}
-              </Link>
-            );
-          })}
+            </Link>
+          ))}
         </div>
       </section>
 

@@ -40,17 +40,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const salaryPages: MetadataRoute.Sitemap = [];
 
   for (const cfg of ALL_STATE_CONFIGS) {
-    const { slug, noTax, externalSite } = cfg;
+    const { slug, noTax } = cfg;
 
-    // Skip Texas (has dedicated static route already in corePages)
-    // Skip external referral states (California → californiasalaryaftertax.com)
-    if (slug === "texas") {
-      // Texas salary pages only — hub already in corePages
-    } else if (externalSite) {
-      // External state — skip entirely from our sitemap
-      continue;
-    } else {
-      // State hub page
+    // Skip Texas (hub already in corePages above)
+    if (slug !== "texas") {
       const hubPriority = noTax ? 0.90 : 0.80;
       stateHubPages.push({
         url: `${BASE}/${slug}`,
