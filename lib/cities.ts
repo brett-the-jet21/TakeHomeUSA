@@ -1,7 +1,8 @@
 // ─── City / Local Income Tax Configurations ──────────────────────────────────
 // Rates reflect 2025–2026 enacted tax law
 // Sources: NYC DOF, Philadelphia Revenue Dept, Detroit City Tax, Baltimore
-// City Finance, Columbus CCA, KC/STL City Earnings Tax, Metro/Multnomah OR
+// City Finance, Columbus CCA, KC/STL City Earnings Tax, Metro/Multnomah OR,
+// MD Comptroller 2024 county income tax rates
 
 export interface CityTaxConfig {
   name: string;
@@ -15,6 +16,12 @@ export interface CityTaxConfig {
   brackets?: [number, number, number][];
   /** Deduction before rate(s) are applied. 0 for wage taxes on gross earnings. */
   deduction: number;
+  /**
+   * When true, this city/county config fully replaces the state's additionalRate.
+   * Used for Maryland counties: the state average additionalRate (2.5%) is
+   * stripped so only the selected county rate applies — avoids double-counting.
+   */
+  overridesAdditionalRate?: boolean;
 }
 
 // ─── City Tax Calculator ─────────────────────────────────────────────────────
@@ -69,15 +76,61 @@ const DETROIT: CityTaxConfig = {
   flat: 0.024,
 };
 
-const BALTIMORE: CityTaxConfig = {
-  name: "Baltimore",
-  slug: "baltimore",
-  stateSlug: "maryland",
-  topRateDisplay: "3.2%",
-  description: "Baltimore City levies a 3.2% local income tax (piggyback on MD taxable income) on residents.",
-  deduction: 2_400, // mirrors MD state standard deduction
-  flat: 0.032,
-};
+// ─── Maryland County Income Tax ───────────────────────────────────────────────
+// Source: MD Comptroller 2024 county income tax rates
+// All MD counties levy a piggyback tax on MD taxable income (= gross − MD
+// standard deduction of $2,400 for single filers).
+// overridesAdditionalRate: true strips the state's default additionalRate (2.5%
+// average) so only the selected county rate is applied — no double-counting.
+function mdCounty(name: string, slug: string, rate: number, desc?: string): CityTaxConfig {
+  return {
+    name,
+    slug,
+    stateSlug: "maryland",
+    topRateDisplay: (rate * 100).toFixed(2) + "%",
+    description: desc ?? `${name} levies a ${(rate * 100).toFixed(2)}% county income tax on Maryland taxable income.`,
+    deduction: 2_400, // MD state standard deduction for single filer
+    flat: rate,
+    overridesAdditionalRate: true,
+  };
+}
+
+const MD_ALLEGANY       = mdCounty("Allegany County",         "allegany",       0.0305);
+const MD_ANNE_ARUNDEL   = mdCounty("Anne Arundel County",     "anne-arundel",   0.0281);
+const MD_BALTIMORE_CITY = mdCounty("Baltimore City",          "baltimore",      0.0320,
+  "Baltimore City levies a 3.20% local income tax on Maryland taxable income.");
+const MD_BALTIMORE_CO   = mdCounty("Baltimore County",        "baltimore-county", 0.0320);
+const MD_CALVERT        = mdCounty("Calvert County",          "calvert",        0.0300);
+const MD_CAROLINE       = mdCounty("Caroline County",         "caroline",       0.0320);
+const MD_CARROLL        = mdCounty("Carroll County",          "carroll",        0.0305);
+const MD_CECIL          = mdCounty("Cecil County",            "cecil",          0.0300);
+const MD_CHARLES        = mdCounty("Charles County",          "charles",        0.0303);
+const MD_DORCHESTER     = mdCounty("Dorchester County",       "dorchester",     0.0320);
+const MD_FREDERICK      = mdCounty("Frederick County",        "frederick",      0.0296);
+const MD_GARRETT        = mdCounty("Garrett County",          "garrett",        0.0265);
+const MD_HARFORD        = mdCounty("Harford County",          "harford",        0.0306);
+const MD_HOWARD         = mdCounty("Howard County",           "howard",         0.0320);
+const MD_KENT           = mdCounty("Kent County",             "kent",           0.0320);
+const MD_MONTGOMERY     = mdCounty("Montgomery County",       "montgomery",     0.0320);
+const MD_PRINCE_GEORGES = mdCounty("Prince George's County",  "prince-georges", 0.0320);
+const MD_QUEEN_ANNES    = mdCounty("Queen Anne's County",     "queen-annes",    0.0320);
+const MD_ST_MARYS       = mdCounty("St. Mary's County",       "st-marys",       0.0300);
+const MD_SOMERSET       = mdCounty("Somerset County",         "somerset",       0.0320);
+const MD_TALBOT         = mdCounty("Talbot County",           "talbot",         0.0240);
+const MD_WASHINGTON     = mdCounty("Washington County",       "washington",     0.0300);
+const MD_WICOMICO       = mdCounty("Wicomico County",         "wicomico",       0.0320);
+const MD_WORCESTER      = mdCounty("Worcester County",        "worcester",      0.0225);
+
+export const MD_COUNTIES: CityTaxConfig[] = [
+  MD_ALLEGANY, MD_ANNE_ARUNDEL, MD_BALTIMORE_CITY, MD_BALTIMORE_CO,
+  MD_CALVERT, MD_CAROLINE, MD_CARROLL, MD_CECIL, MD_CHARLES,
+  MD_DORCHESTER, MD_FREDERICK, MD_GARRETT, MD_HARFORD, MD_HOWARD,
+  MD_KENT, MD_MONTGOMERY, MD_PRINCE_GEORGES, MD_QUEEN_ANNES,
+  MD_ST_MARYS, MD_SOMERSET, MD_TALBOT, MD_WASHINGTON, MD_WICOMICO,
+  MD_WORCESTER,
+];
+
+// ─── Other Cities ─────────────────────────────────────────────────────────────
 
 const COLUMBUS: CityTaxConfig = {
   name: "Columbus",
@@ -131,7 +184,7 @@ export const ALL_CITIES: CityTaxConfig[] = [
   NEW_YORK_CITY,
   PHILADELPHIA,
   DETROIT,
-  BALTIMORE,
+  ...MD_COUNTIES,
   COLUMBUS,
   KANSAS_CITY,
   ST_LOUIS,
@@ -147,7 +200,7 @@ export const CITIES_BY_STATE = new Map<string, CityTaxConfig[]>([
   ["new-york",     [NEW_YORK_CITY]],
   ["pennsylvania", [PHILADELPHIA]],
   ["michigan",     [DETROIT]],
-  ["maryland",     [BALTIMORE]],
+  ["maryland",     MD_COUNTIES],
   ["ohio",         [COLUMBUS]],
   ["missouri",     [KANSAS_CITY, ST_LOUIS]],
   ["oregon",       [PORTLAND]],

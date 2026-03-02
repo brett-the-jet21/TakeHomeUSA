@@ -26,6 +26,10 @@ export const FEDERAL_BRACKETS_2026 = FEDERAL_BRACKETS;
 export interface CalcOptions {
   filingStatus?: "single" | "married";
   contribution401k?: number;
+  /** Annual Section 125 health insurance premium — reduces federal, FICA, and state taxable income */
+  healthInsurance?: number;
+  /** Annual HSA payroll contribution — reduces federal, FICA, and state taxable income */
+  hsa?: number;
   cityConfig?: CityTaxConfig;
 }
 
@@ -45,6 +49,8 @@ export interface TaxResult {
   effectiveTotalRate: number;
   marginalRate: number;
   contribution401k: number;
+  healthInsurancePremium: number;
+  hsaContribution: number;
   cityTax: number;
 }
 
@@ -68,23 +74,38 @@ import type { CityTaxConfig } from "./cities";
 import { calcCityTax } from "./cities";
 
 export function calculateTax(stateConfig: StateTaxConfig, gross: number, options: CalcOptions = {}): TaxResult {
-  const { filingStatus = "single", contribution401k = 0, cityConfig } = options;
+  const { filingStatus = "single", contribution401k = 0, healthInsurance = 0, hsa = 0, cityConfig } = options;
   const stdDeduction = filingStatus === "married" ? STANDARD_DEDUCTION_MARRIED : STANDARD_DEDUCTION_SINGLE;
-  const preTax = Math.max(0, Math.min(contribution401k, gross));
 
-  const federalTaxable = Math.max(0, gross - stdDeduction - preTax);
-  const { tax: federalTax, marginalRate } = calcFederal(federalTaxable);
+  // 401k reduces federal + state taxable income but NOT FICA wages
+  const preTax401k = Math.max(0, Math.min(contribution401k, gross));
+  // Section 125 health + HSA reduce FICA wages AND federal + state taxable income
+  const healthInsPreTax = Math.max(0, Math.min(healthInsurance, gross));
+  const hsaPreTax = Math.max(0, Math.min(hsa, gross));
 
-  const socialSecurity = Math.min(gross, SS_WAGE_BASE) * 0.062;
-  const medicare = gross * 0.0145;
-  const additionalMedicare = Math.max(0, gross - ADDL_MEDICARE_THRESHOLD) * 0.009;
+  // FICA is computed on wages minus Section 125 deductions (health, HSA), but NOT 401k
+  const ficaWages = Math.max(0, gross - healthInsPreTax - hsaPreTax);
+  const socialSecurity = Math.min(ficaWages, SS_WAGE_BASE) * 0.062;
+  const medicare = ficaWages * 0.0145;
+  const additionalMedicare = Math.max(0, ficaWages - ADDL_MEDICARE_THRESHOLD) * 0.009;
   const ficaTotal = socialSecurity + medicare + additionalMedicare;
 
-  const adjustedGross = Math.max(0, gross - preTax);
-  const stateTax = calcStateOnly(stateConfig, adjustedGross);
+  // Federal + state taxable income is reduced by all pre-tax deductions
+  const allPreTax = preTax401k + healthInsPreTax + hsaPreTax;
+  const federalTaxable = Math.max(0, gross - stdDeduction - allPreTax);
+  const { tax: federalTax, marginalRate } = calcFederal(federalTaxable);
+
+  const adjustedGross = Math.max(0, gross - allPreTax);
+
+  // MD county (and similar): when cityConfig overrides the state's additionalRate,
+  // strip the state average so only the selected county rate is applied
+  const stateConfigForCalc = cityConfig?.overridesAdditionalRate
+    ? { ...stateConfig, additionalRate: undefined }
+    : stateConfig;
+  const stateTax = calcStateOnly(stateConfigForCalc, adjustedGross);
   const cityTax = cityConfig ? calcCityTax(cityConfig, adjustedGross) : 0;
   const totalTax = federalTax + ficaTotal + stateTax + cityTax;
-  const takeHome = gross - totalTax - preTax;
+  const takeHome = gross - totalTax - allPreTax;
 
   return {
     gross,
@@ -101,7 +122,9 @@ export function calculateTax(stateConfig: StateTaxConfig, gross: number, options
     effectiveFederalRate: gross > 0 ? federalTax / gross : 0,
     effectiveTotalRate: gross > 0 ? totalTax / gross : 0,
     marginalRate,
-    contribution401k: preTax,
+    contribution401k: preTax401k,
+    healthInsurancePremium: healthInsPreTax,
+    hsaContribution: hsaPreTax,
     cityTax,
   };
 }
@@ -137,6 +160,8 @@ export function calculateTexasTax(gross: number): TaxResult {
     effectiveTotalRate: gross > 0 ? totalTax / gross : 0,
     marginalRate,
     contribution401k: 0,
+    healthInsurancePremium: 0,
+    hsaContribution: 0,
     cityTax: 0,
   };
 }

@@ -34,12 +34,47 @@ const maxTake = Math.max(...COMPARE_100K.map((s) => s.take));
 const FEATURED_NO_TAX = ["texas", "florida", "nevada", "wyoming", "washington"];
 const FEATURED_TAXED  = ["new-york", "california", "illinois", "colorado", "virginia"];
 
+// IANA timezone → best-match state slug for auto-detect on first visit
+const TIMEZONE_TO_STATE: Record<string, string> = {
+  "America/New_York":               "new-york",
+  "America/Detroit":                "michigan",
+  "America/Indiana/Indianapolis":   "indiana",
+  "America/Indiana/Tell_City":      "indiana",
+  "America/Indiana/Knox":           "indiana",
+  "America/Indiana/Winamac":        "indiana",
+  "America/Indiana/Marengo":        "indiana",
+  "America/Indiana/Petersburg":     "indiana",
+  "America/Indiana/Vevay":          "indiana",
+  "America/Indiana/Vincennes":      "indiana",
+  "America/Kentucky/Louisville":    "kentucky",
+  "America/Kentucky/Monticello":    "kentucky",
+  "America/Chicago":                "illinois",
+  "America/Menominee":              "michigan",
+  "America/North_Dakota/Center":    "north-dakota",
+  "America/North_Dakota/New_Salem": "north-dakota",
+  "America/North_Dakota/Beulah":    "north-dakota",
+  "America/Denver":                 "colorado",
+  "America/Boise":                  "idaho",
+  "America/Phoenix":                "arizona",
+  "America/Los_Angeles":            "california",
+  "America/Anchorage":              "alaska",
+  "America/Juneau":                 "alaska",
+  "America/Sitka":                  "alaska",
+  "America/Yakutat":                "alaska",
+  "America/Nome":                   "alaska",
+  "America/Metlakatla":             "alaska",
+  "America/Adak":                   "alaska",
+  "Pacific/Honolulu":               "hawaii",
+};
+
 export default function HomePageClient() {
   const router = useRouter();
   const [salary, setSalary] = useState("100000");
   const [stateSlug, setStateSlug] = useState("texas");
   const [filing, setFiling] = useState<"single" | "married">("single");
   const [contribution401k, setContribution401k] = useState("");
+  const [healthInsurance, setHealthInsurance] = useState("");
+  const [hsa, setHsa] = useState("");
   const [citySlug, setCitySlug] = useState("");
   const [inputMode, setInputMode] = useState<"annual" | "hourly">("annual");
   const [hourlyRate, setHourlyRate] = useState("");
@@ -58,6 +93,10 @@ export default function HomePageClient() {
     if (f === "married") setFiling("married");
     const k = params.get("401k");
     if (k && /^\d+$/.test(k) && Number(k) > 0) setContribution401k(k);
+    const hi = params.get("health");
+    if (hi && /^\d+$/.test(hi) && Number(hi) > 0) setHealthInsurance(hi);
+    const hsaParam = params.get("hsa");
+    if (hsaParam && /^\d+$/.test(hsaParam) && Number(hsaParam) > 0) setHsa(hsaParam);
     const c = params.get("city");
     if (c && CITY_BY_SLUG.has(c)) setCitySlug(c);
     const m = params.get("mode");
@@ -66,6 +105,14 @@ export default function HomePageClient() {
     if (r && /^\d+(\.\d+)?$/.test(r) && parseFloat(r) > 0) setHourlyRate(r);
     const hw = params.get("hours");
     if (hw && /^\d+$/.test(hw) && Number(hw) >= 1 && Number(hw) <= 168) setHoursPerWeek(hw);
+    // Auto-detect state from timezone only when no explicit ?state= param
+    if (!params.get("state")) {
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const tzState = TIMEZONE_TO_STATE[tz];
+        if (tzState && STATE_BY_SLUG.has(tzState)) setStateSlug(tzState);
+      } catch { /* ignore detection failures */ }
+    }
     setInitialized(true);
   }, []);
 
@@ -79,6 +126,10 @@ export default function HomePageClient() {
     if (filing !== "single") params.set("filing", filing);
     const k = Number(contribution401k.replace(/[^\d]/g, ""));
     if (k > 0) params.set("401k", String(k));
+    const hiNum = Number(healthInsurance.replace(/[^\d]/g, ""));
+    if (hiNum > 0) params.set("health", String(hiNum));
+    const hsaNum2 = Number(hsa.replace(/[^\d]/g, ""));
+    if (hsaNum2 > 0) params.set("hsa", String(hsaNum2));
     if (citySlug) params.set("city", citySlug);
     if (inputMode === "hourly") {
       params.set("mode", "hourly");
@@ -88,7 +139,7 @@ export default function HomePageClient() {
     }
     const qs = params.toString();
     window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
-  }, [salary, stateSlug, filing, contribution401k, citySlug, inputMode, hourlyRate, hoursPerWeek, initialized]);
+  }, [salary, stateSlug, filing, contribution401k, healthInsurance, hsa, citySlug, inputMode, hourlyRate, hoursPerWeek, initialized]);
 
   const handleCopyLink = useCallback(() => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -105,6 +156,16 @@ export default function HomePageClient() {
     const n = Number(contribution401k.replace(/[^\d]/g, ""));
     return n > 0 ? n : 0;
   }, [contribution401k]);
+
+  const healthInsNum = useMemo(() => {
+    const n = Number(healthInsurance.replace(/[^\d]/g, ""));
+    return n > 0 ? n : 0;
+  }, [healthInsurance]);
+
+  const hsaNum = useMemo(() => {
+    const n = Number(hsa.replace(/[^\d]/g, ""));
+    return n > 0 ? n : 0;
+  }, [hsa]);
 
   const citiesForState = useMemo(() => CITIES_BY_STATE.get(stateSlug) ?? [], [stateSlug]);
 
@@ -125,8 +186,8 @@ export default function HomePageClient() {
   const previewTax = useMemo(() => {
     const n = grossAnnual;
     if (!n || n < 1_000 || n > 100_000_000_000_000) return null;
-    return calculateTax(cfg, n, { filingStatus: filing, contribution401k: contrib401kNum, cityConfig });
-  }, [grossAnnual, cfg, filing, contrib401kNum, cityConfig]);
+    return calculateTax(cfg, n, { filingStatus: filing, contribution401k: contrib401kNum, healthInsurance: healthInsNum, hsa: hsaNum, cityConfig });
+  }, [grossAnnual, cfg, filing, contrib401kNum, healthInsNum, hsaNum, cityConfig]);
 
   function handleCalculate() {
     const raw = grossAnnual;
@@ -136,6 +197,8 @@ export default function HomePageClient() {
     const params = new URLSearchParams();
     if (filing !== "single") params.set("filing", filing);
     if (contrib401kNum > 0) params.set("401k", String(contrib401kNum));
+    if (healthInsNum > 0) params.set("health", String(healthInsNum));
+    if (hsaNum > 0) params.set("hsa", String(hsaNum));
     if (citySlug) params.set("city", citySlug);
     if (inputMode === "hourly") {
       params.set("mode", "hourly");
@@ -330,18 +393,21 @@ export default function HomePageClient() {
                     </select>
                   </label>
 
-                  {/* City / local tax — only shown for states with city taxes */}
+                  {/* City / county tax — only shown for states with local taxes */}
                   {citiesForState.length > 0 && (
                     <label className="block">
                       <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
-                        City / Local Tax <span className="font-normal normal-case">(optional)</span>
+                        {stateSlug === "maryland" ? "County Income Tax" : "City / Local Tax"}{" "}
+                        <span className="font-normal normal-case">(optional)</span>
                       </span>
                       <select
                         value={citySlug}
                         onChange={(e) => setCitySlug(e.target.value)}
                         className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3.5 text-base font-semibold focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 bg-white transition-all"
                       >
-                        <option value="">No city tax</option>
+                        <option value="">
+                          {stateSlug === "maryland" ? "All counties — avg 2.5%" : "No city tax"}
+                        </option>
                         {citiesForState.map((c) => (
                           <option key={c.slug} value={c.slug}>
                             {c.name} — {c.topRateDisplay}
@@ -377,6 +443,40 @@ export default function HomePageClient() {
                         inputMode="numeric"
                         value={contribution401k}
                         onChange={(e) => setContribution401k(e.target.value)}
+                        placeholder="0"
+                        className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-3.5 text-base font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                      />
+                    </div>
+                  </label>
+
+                  {/* Health insurance pre-tax premium (Section 125) */}
+                  <label className="block">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
+                      Health Insurance Premium <span className="font-normal normal-case">(optional — annual)</span>
+                    </span>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl font-bold">$</span>
+                      <input
+                        inputMode="numeric"
+                        value={healthInsurance}
+                        onChange={(e) => setHealthInsurance(e.target.value)}
+                        placeholder="0"
+                        className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-3.5 text-base font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                      />
+                    </div>
+                  </label>
+
+                  {/* HSA payroll contribution */}
+                  <label className="block">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
+                      HSA Contribution <span className="font-normal normal-case">(optional — annual)</span>
+                    </span>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl font-bold">$</span>
+                      <input
+                        inputMode="numeric"
+                        value={hsa}
+                        onChange={(e) => setHsa(e.target.value)}
                         placeholder="0"
                         className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-3.5 text-base font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
                       />
@@ -423,6 +523,12 @@ export default function HomePageClient() {
                       <div className="bg-orange-300" style={{ width: `${(previewTax.ficaTotal / previewTax.gross) * 100}%` }} />
                       {previewTax.contribution401k > 0 && (
                         <div className="bg-blue-300" style={{ width: `${(previewTax.contribution401k / previewTax.gross) * 100}%` }} />
+                      )}
+                      {previewTax.healthInsurancePremium > 0 && (
+                        <div className="bg-sky-300" style={{ width: `${(previewTax.healthInsurancePremium / previewTax.gross) * 100}%` }} />
+                      )}
+                      {previewTax.hsaContribution > 0 && (
+                        <div className="bg-cyan-300" style={{ width: `${(previewTax.hsaContribution / previewTax.gross) * 100}%` }} />
                       )}
                       <div className="bg-green-400 flex-1" />
                     </div>
