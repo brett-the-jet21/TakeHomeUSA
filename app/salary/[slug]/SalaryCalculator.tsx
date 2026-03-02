@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { calculateTax, fmt, pct, TAX_YEAR, FEDERAL_BRACKETS_2026 } from "@/lib/tax";
 import type { StateTaxConfig } from "@/lib/states";
+import { CITIES_BY_STATE, CITY_BY_SLUG } from "@/lib/cities";
 
 const BRACKET_LABELS = [
   "$0 – $12,400",
@@ -27,6 +28,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
   const [showHowWeCalc, setShowHowWeCalc] = useState(false);
   const [filing, setFiling] = useState<"single" | "married">("single");
   const [contribution401k, setContribution401k] = useState("");
+  const [citySlug, setCitySlug] = useState("");
   const [initialized, setInitialized] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -37,6 +39,8 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
     if (f === "married") setFiling("married");
     const k = params.get("401k");
     if (k && /^\d+$/.test(k) && Number(k) > 0) setContribution401k(k);
+    const c = params.get("city");
+    if (c && CITY_BY_SLUG.has(c)) setCitySlug(c);
     setInitialized(true);
   }, []);
 
@@ -47,9 +51,10 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
     if (filing !== "single") params.set("filing", filing);
     const k = Number(contribution401k.replace(/[^\d]/g, ""));
     if (k > 0) params.set("401k", String(k));
+    if (citySlug) params.set("city", citySlug);
     const qs = params.toString();
     window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
-  }, [filing, contribution401k, initialized]);
+  }, [filing, contribution401k, citySlug, initialized]);
 
   const handleCopyLink = useCallback(() => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -68,9 +73,16 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
     return n > 0 ? n : 0;
   }, [contribution401k]);
 
+  const citiesForState = useMemo(() => CITIES_BY_STATE.get(stateConfig.slug) ?? [], [stateConfig.slug]);
+
+  const cityConfig = useMemo(() => {
+    const city = CITY_BY_SLUG.get(citySlug);
+    return city?.stateSlug === stateConfig.slug ? city : undefined;
+  }, [citySlug, stateConfig.slug]);
+
   const tax = useMemo(
-    () => calculateTax(stateConfig, amount, { filingStatus: filing, contribution401k: contrib401kNum }),
-    [stateConfig, amount, filing, contrib401kNum]
+    () => calculateTax(stateConfig, amount, { filingStatus: filing, contribution401k: contrib401kNum, cityConfig }),
+    [stateConfig, amount, filing, contrib401kNum, cityConfig]
   );
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,6 +96,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
       if (filing !== "single") params.set("filing", filing);
       const k = Number(contribution401k.replace(/[^\d]/g, ""));
       if (k > 0) params.set("401k", String(k));
+      if (citySlug) params.set("city", citySlug);
       const qs = params.toString();
       router.push(`/salary/${n}-salary-after-tax-${stateConfig.slug}${qs ? `?${qs}` : ""}`);
     }
@@ -99,6 +112,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
   // Visual bar percentages
   const fedPct   = tax.gross > 0 ? (tax.federalTax  / tax.gross) * 100 : 0;
   const statePct = tax.gross > 0 ? (tax.stateTax    / tax.gross) * 100 : 0;
+  const cityPct  = tax.gross > 0 ? (tax.cityTax     / tax.gross) * 100 : 0;
   const ficaPct  = tax.gross > 0 ? (tax.ficaTotal   / tax.gross) * 100 : 0;
   const takePct  = tax.gross > 0 ? (tax.takeHome    / tax.gross) * 100 : 100;
 
@@ -239,6 +253,21 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
               />
             </div>
           </div>
+          {citiesForState.length > 0 && (
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-gray-600 mb-1">City / Local Tax</label>
+              <select
+                value={citySlug}
+                onChange={(e) => setCitySlug(e.target.value)}
+                className="w-full border border-blue-200 rounded-xl px-3 py-2 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+              >
+                <option value="">No city tax</option>
+                {citiesForState.map((c) => (
+                  <option key={c.slug} value={c.slug}>{c.name} — {c.topRateDisplay}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
         <p className="text-xs text-gray-400 mt-2">
           Type any salary · Numbers refresh live · Enter or click to navigate to a dedicated page
@@ -345,6 +374,17 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
               )}
             </div>
           )}
+          {cityPct > 0 && (
+            <div
+              className="bg-teal-500 flex items-center justify-center transition-all duration-300"
+              style={{ width: `${cityPct}%` }}
+              title={`City Tax: ${pct(cityPct / 100)}`}
+            >
+              {cityPct > 3 && (
+                <span className="text-white text-xs font-bold px-1 truncate">City {pct(cityPct / 100)}</span>
+              )}
+            </div>
+          )}
           <div
             className="bg-orange-400 flex items-center justify-center transition-all duration-300"
             style={{ width: `${ficaPct}%` }}
@@ -372,6 +412,12 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
             <span className="flex items-center gap-1.5">
               <span className="w-3 h-3 bg-purple-500 rounded-sm inline-block flex-shrink-0" />
               <span className="text-gray-700">State: <strong>{fmt(tax.stateTax)}</strong></span>
+            </span>
+          )}
+          {tax.cityTax > 0 && cityConfig && (
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 bg-teal-500 rounded-sm inline-block flex-shrink-0" />
+              <span className="text-gray-700">City ({cityConfig.name}): <strong>{fmt(tax.cityTax)}</strong></span>
             </span>
           )}
           <span className="flex items-center gap-1.5">
@@ -462,6 +508,18 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                       </td>
                       <td className="text-purple-700 tabular-nums">{pct(tax.stateTax / tax.gross)}</td>
                       <td className="text-purple-700 font-semibold tabular-nums">−{fmt(tax.stateTax)}</td>
+                    </tr>
+                  )}
+                  {tax.cityTax > 0 && cityConfig && (
+                    <tr className="bg-teal-50">
+                      <td className="font-medium text-gray-700">
+                        {cityConfig.name} City Tax
+                        <span className="block text-xs text-gray-400 mt-0.5">
+                          {cityConfig.description}
+                        </span>
+                      </td>
+                      <td className="text-teal-700 tabular-nums">{pct(tax.cityTax / tax.gross)}</td>
+                      <td className="text-teal-700 font-semibold tabular-nums">−{fmt(tax.cityTax)}</td>
                     </tr>
                   )}
                   <tr className="bg-gray-50">
