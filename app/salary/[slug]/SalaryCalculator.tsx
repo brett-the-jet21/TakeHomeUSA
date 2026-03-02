@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { calculateTax, fmt, pct, TAX_YEAR, FEDERAL_BRACKETS_2026 } from "@/lib/tax";
@@ -25,13 +25,53 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
   const router = useRouter();
   const [salaryInput, setSalaryInput] = useState(initialAmount.toString());
   const [showHowWeCalc, setShowHowWeCalc] = useState(false);
+  const [filing, setFiling] = useState<"single" | "married">("single");
+  const [contribution401k, setContribution401k] = useState("");
+  const [initialized, setInitialized] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Read URL params on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const f = params.get("filing");
+    if (f === "married") setFiling("married");
+    const k = params.get("401k");
+    if (k && /^\d+$/.test(k) && Number(k) > 0) setContribution401k(k);
+    setInitialized(true);
+  }, []);
+
+  // Write URL params when filing/401k change (only after initialization)
+  useEffect(() => {
+    if (!initialized) return;
+    const params = new URLSearchParams();
+    if (filing !== "single") params.set("filing", filing);
+    const k = Number(contribution401k.replace(/[^\d]/g, ""));
+    if (k > 0) params.set("401k", String(k));
+    const qs = params.toString();
+    window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+  }, [filing, contribution401k, initialized]);
+
+  const handleCopyLink = useCallback(() => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, []);
 
   const amount = useMemo(() => {
     const n = Number(salaryInput.replace(/[^0-9]/g, ""));
     return n >= 1_000 && n <= 100_000_000_000_000 ? n : initialAmount;
   }, [salaryInput, initialAmount]);
 
-  const tax = useMemo(() => calculateTax(stateConfig, amount), [stateConfig, amount]);
+  const contrib401kNum = useMemo(() => {
+    const n = Number(contribution401k.replace(/[^\d]/g, ""));
+    return n > 0 ? n : 0;
+  }, [contribution401k]);
+
+  const tax = useMemo(
+    () => calculateTax(stateConfig, amount, { filingStatus: filing, contribution401k: contrib401kNum }),
+    [stateConfig, amount, filing, contrib401kNum]
+  );
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSalaryInput(e.target.value);
@@ -40,9 +80,14 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
   const handleNavigate = useCallback(() => {
     const n = Number(salaryInput.replace(/[^0-9]/g, ""));
     if (n >= 1_000 && n <= 100_000_000_000_000) {
-      router.push(`/salary/${n}-salary-after-tax-${stateConfig.slug}`);
+      const params = new URLSearchParams();
+      if (filing !== "single") params.set("filing", filing);
+      const k = Number(contribution401k.replace(/[^\d]/g, ""));
+      if (k > 0) params.set("401k", String(k));
+      const qs = params.toString();
+      router.push(`/salary/${n}-salary-after-tax-${stateConfig.slug}${qs ? `?${qs}` : ""}`);
     }
-  }, [salaryInput, router, stateConfig.slug]);
+  }, [salaryInput, router, stateConfig.slug, filing, contribution401k]);
 
   const { name: stateName, noTax, slug: stateSlug, topRateDisplay } = stateConfig;
 
@@ -147,7 +192,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
         <label className="block text-sm font-bold text-gray-700 mb-2">
           Adjust Salary — All Results Update Instantly
         </label>
-        <div className="flex gap-3">
+        <div className="flex gap-3 mb-3">
           <div className="relative flex-1">
             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg pointer-events-none">$</span>
             <input
@@ -167,6 +212,33 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
           >
             Full Page →
           </button>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Filing Status</label>
+            <select
+              value={filing}
+              onChange={(e) => setFiling(e.target.value as "single" | "married")}
+              className="w-full border border-blue-200 rounded-xl px-3 py-2 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+            >
+              <option value="single">Single</option>
+              <option value="married">Married Filing Jointly</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">401(k) Pre-Tax Contribution</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm pointer-events-none">$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={contribution401k}
+                onChange={(e) => setContribution401k(e.target.value)}
+                placeholder="0"
+                className="w-full pl-7 pr-3 py-2 border border-blue-200 rounded-xl text-sm font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+              />
+            </div>
+          </div>
         </div>
         <p className="text-xs text-gray-400 mt-2">
           Type any salary · Numbers refresh live · Enter or click to navigate to a dedicated page
@@ -227,6 +299,18 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
           <div>
             <span className="text-blue-300 text-xs">You Keep</span>
             <p className="font-bold text-lg text-green-400">{pct(tax.takeHome / tax.gross)}</p>
+          </div>
+          <div className="ml-auto self-end">
+            <button
+              onClick={handleCopyLink}
+              className="flex items-center gap-1.5 text-xs text-blue-300 hover:text-white transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copied ? "Link copied!" : "Copy link"}
+            </button>
           </div>
         </div>
       </div>
@@ -394,7 +478,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
               </table>
             </div>
             <p className="text-xs text-gray-400 mt-2">
-              Calculations based on {TAX_YEAR} IRS brackets and official state tax tables. Single filer, standard deduction applied. State tax is estimated — actual amounts vary by credits and deductions.
+              Calculations based on {TAX_YEAR} IRS brackets and official state tax tables. {filing === "married" ? "Married filing jointly" : "Single filer"}, standard deduction applied. State tax is estimated — actual amounts vary by credits and deductions.
             </p>
           </section>
 
@@ -453,7 +537,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="font-bold text-gray-900 mb-1">Filing Assumptions</p>
                   <ul className="list-disc list-inside space-y-1 text-xs text-gray-500">
-                    <li>Filing status: Single filer</li>
+                    <li>Filing status: {filing === "married" ? "Married Filing Jointly" : "Single filer"}</li>
                     <li>Federal standard deduction: ${tax.standardDeduction.toLocaleString()} ({TAX_YEAR}, IRS Rev. Proc. 2025-32)</li>
                     <li>No additional credits, itemized deductions, or pre-tax contributions assumed</li>
                     <li>Social Security wage base: $184,500 ({TAX_YEAR}, SSA COLA 2026 announcement)</li>

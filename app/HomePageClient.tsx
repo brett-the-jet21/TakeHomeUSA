@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ALL_STATE_CONFIGS, STATE_BY_SLUG } from "@/lib/states";
@@ -37,16 +37,60 @@ export default function HomePageClient() {
   const router = useRouter();
   const [salary, setSalary] = useState("100000");
   const [stateSlug, setStateSlug] = useState("texas");
+  const [filing, setFiling] = useState<"single" | "married">("single");
+  const [contribution401k, setContribution401k] = useState("");
+  const [initialized, setInitialized] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Read URL params on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const s = params.get("salary");
+    if (s && /^\d+$/.test(s)) setSalary(s);
+    const st = params.get("state");
+    if (st && STATE_BY_SLUG.has(st)) setStateSlug(st);
+    const f = params.get("filing");
+    if (f === "married") setFiling("married");
+    const k = params.get("401k");
+    if (k && /^\d+$/.test(k) && Number(k) > 0) setContribution401k(k);
+    setInitialized(true);
+  }, []);
+
+  // Write URL params when inputs change (only after initialization)
+  useEffect(() => {
+    if (!initialized) return;
+    const params = new URLSearchParams();
+    const cleanSalary = salary.replace(/[^\d]/g, "");
+    if (cleanSalary && cleanSalary !== "100000") params.set("salary", cleanSalary);
+    if (stateSlug !== "texas") params.set("state", stateSlug);
+    if (filing !== "single") params.set("filing", filing);
+    const k = Number(contribution401k.replace(/[^\d]/g, ""));
+    if (k > 0) params.set("401k", String(k));
+    const qs = params.toString();
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  }, [salary, stateSlug, filing, contribution401k, initialized]);
+
+  const handleCopyLink = useCallback(() => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, []);
 
   const cfg = useMemo(() => STATE_BY_SLUG.get(stateSlug) ?? STATE_BY_SLUG.get("texas")!, [stateSlug]);
 
   const cleaned = useMemo(() => String(salary || "").replace(/[^\d]/g, ""), [salary]);
 
+  const contrib401kNum = useMemo(() => {
+    const n = Number(contribution401k.replace(/[^\d]/g, ""));
+    return n > 0 ? n : 0;
+  }, [contribution401k]);
+
   const previewTax = useMemo(() => {
     const n = Number(cleaned);
     if (!n || n < 1_000 || n > 100_000_000_000_000) return null;
-    return calculateTax(cfg, n);
-  }, [cleaned, cfg]);
+    return calculateTax(cfg, n, { filingStatus: filing, contribution401k: contrib401kNum });
+  }, [cleaned, cfg, filing, contrib401kNum]);
 
   function handleCalculate() {
     const raw = Number(cleaned);
@@ -57,6 +101,7 @@ export default function HomePageClient() {
   }
 
   const { name: stateName, noTax, topRateDisplay } = cfg;
+  const filingLabel = filing === "married" ? "Married Filing Jointly" : "Single";
 
   return (
     <>
@@ -185,6 +230,38 @@ export default function HomePageClient() {
                       </optgroup>
                     </select>
                   </label>
+
+                  {/* Filing status */}
+                  <label className="block">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
+                      Filing Status
+                    </span>
+                    <select
+                      value={filing}
+                      onChange={(e) => setFiling(e.target.value as "single" | "married")}
+                      className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3.5 text-base font-semibold focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 bg-white transition-all"
+                    >
+                      <option value="single">Single</option>
+                      <option value="married">Married Filing Jointly</option>
+                    </select>
+                  </label>
+
+                  {/* 401(k) pre-tax contribution */}
+                  <label className="block">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
+                      401(k) Pre-Tax Contribution <span className="font-normal normal-case">(optional)</span>
+                    </span>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl font-bold">$</span>
+                      <input
+                        inputMode="numeric"
+                        value={contribution401k}
+                        onChange={(e) => setContribution401k(e.target.value)}
+                        placeholder="0"
+                        className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-3.5 text-base font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                      />
+                    </div>
+                  </label>
                 </div>
 
                 {/* Live Preview */}
@@ -216,12 +293,28 @@ export default function HomePageClient() {
                         <div className="bg-purple-400" style={{ width: `${(previewTax.stateTax / previewTax.gross) * 100}%` }} />
                       )}
                       <div className="bg-orange-300" style={{ width: `${(previewTax.ficaTotal / previewTax.gross) * 100}%` }} />
+                      {previewTax.contribution401k > 0 && (
+                        <div className="bg-blue-300" style={{ width: `${(previewTax.contribution401k / previewTax.gross) * 100}%` }} />
+                      )}
                       <div className="bg-green-400 flex-1" />
                     </div>
                     <p className="text-xs text-gray-400 mt-1">
                       {noTax ? "No state tax · " : `State tax: ${pct(previewTax.stateTax / previewTax.gross)} · `}
                       Effective rate: {(previewTax.effectiveTotalRate * 100).toFixed(1)}%
                     </p>
+                    {/* Copy Link */}
+                    <div className="mt-3 pt-3 border-t border-green-200">
+                      <button
+                        onClick={handleCopyLink}
+                        className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        {copied ? "Link copied!" : "Copy shareable link"}
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="bg-gray-50 rounded-2xl p-5 mb-4 text-center text-gray-400 text-sm">
@@ -238,7 +331,7 @@ export default function HomePageClient() {
                   See Full Tax Breakdown →
                 </button>
                 <p className="text-center text-xs text-gray-400 mt-3">
-                  {TAX_YEAR} IRS brackets · Single filer · Standard deduction · No signup
+                  {TAX_YEAR} IRS brackets · {filingLabel} · Standard deduction · No signup
                 </p>
               </div>
             </div>

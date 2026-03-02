@@ -1,8 +1,9 @@
-// ─── 2026 Federal Tax Constants (Single Filer) ───────────────────────────────
+// ─── 2026 Federal Tax Constants ───────────────────────────────────────────────
 // Source: IRS Revenue Procedure 2025-32 · SSA COLA 2026 announcement
 export const TAX_YEAR = 2026;
 
-const STANDARD_DEDUCTION = 16_100;
+const STANDARD_DEDUCTION_SINGLE  = 16_100;
+const STANDARD_DEDUCTION_MARRIED = 32_200;
 const SS_WAGE_BASE = 184_500; // Social Security taxable wage base
 const ADDL_MEDICARE_THRESHOLD = 200_000; // Additional 0.9% Medicare kicks in here
 
@@ -22,6 +23,11 @@ const FEDERAL_BRACKETS: { min: number; max: number; rate: number }[] = [
 export const FEDERAL_BRACKETS_2026 = FEDERAL_BRACKETS;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+export interface CalcOptions {
+  filingStatus?: "single" | "married";
+  contribution401k?: number;
+}
+
 export interface TaxResult {
   gross: number;
   standardDeduction: number;
@@ -37,6 +43,7 @@ export interface TaxResult {
   effectiveFederalRate: number;
   effectiveTotalRate: number;
   marginalRate: number;
+  contribution401k: number;
 }
 
 // ─── Federal Tax Calculator ───────────────────────────────────────────────────
@@ -56,8 +63,12 @@ function calcFederal(taxable: number): { tax: number; marginalRate: number } {
 import type { StateTaxConfig } from "./states";
 import { calcStateOnly } from "./states";
 
-export function calculateTax(stateConfig: StateTaxConfig, gross: number): TaxResult {
-  const federalTaxable = Math.max(0, gross - STANDARD_DEDUCTION);
+export function calculateTax(stateConfig: StateTaxConfig, gross: number, options: CalcOptions = {}): TaxResult {
+  const { filingStatus = "single", contribution401k = 0 } = options;
+  const stdDeduction = filingStatus === "married" ? STANDARD_DEDUCTION_MARRIED : STANDARD_DEDUCTION_SINGLE;
+  const preTax = Math.max(0, Math.min(contribution401k, gross));
+
+  const federalTaxable = Math.max(0, gross - stdDeduction - preTax);
   const { tax: federalTax, marginalRate } = calcFederal(federalTaxable);
 
   const socialSecurity = Math.min(gross, SS_WAGE_BASE) * 0.062;
@@ -65,13 +76,13 @@ export function calculateTax(stateConfig: StateTaxConfig, gross: number): TaxRes
   const additionalMedicare = Math.max(0, gross - ADDL_MEDICARE_THRESHOLD) * 0.009;
   const ficaTotal = socialSecurity + medicare + additionalMedicare;
 
-  const stateTax = calcStateOnly(stateConfig, gross);
+  const stateTax = calcStateOnly(stateConfig, Math.max(0, gross - preTax));
   const totalTax = federalTax + ficaTotal + stateTax;
-  const takeHome = gross - totalTax;
+  const takeHome = gross - totalTax - preTax;
 
   return {
     gross,
-    standardDeduction: STANDARD_DEDUCTION,
+    standardDeduction: stdDeduction,
     federalTaxable,
     federalTax,
     socialSecurity,
@@ -84,12 +95,13 @@ export function calculateTax(stateConfig: StateTaxConfig, gross: number): TaxRes
     effectiveFederalRate: gross > 0 ? federalTax / gross : 0,
     effectiveTotalRate: gross > 0 ? totalTax / gross : 0,
     marginalRate,
+    contribution401k: preTax,
   };
 }
 
 // ─── Texas Tax Calculator (No State Income Tax) ───────────────────────────────
 export function calculateTexasTax(gross: number): TaxResult {
-  const federalTaxable = Math.max(0, gross - STANDARD_DEDUCTION);
+  const federalTaxable = Math.max(0, gross - STANDARD_DEDUCTION_SINGLE);
   const { tax: federalTax, marginalRate } = calcFederal(federalTaxable);
 
   const socialSecurity = Math.min(gross, SS_WAGE_BASE) * 0.062;
@@ -104,7 +116,7 @@ export function calculateTexasTax(gross: number): TaxResult {
 
   return {
     gross,
-    standardDeduction: STANDARD_DEDUCTION,
+    standardDeduction: STANDARD_DEDUCTION_SINGLE,
     federalTaxable,
     federalTax,
     socialSecurity,
@@ -117,6 +129,7 @@ export function calculateTexasTax(gross: number): TaxResult {
     effectiveFederalRate: gross > 0 ? federalTax / gross : 0,
     effectiveTotalRate: gross > 0 ? totalTax / gross : 0,
     marginalRate,
+    contribution401k: 0,
   };
 }
 
