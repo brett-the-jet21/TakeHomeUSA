@@ -1,64 +1,94 @@
-"use client";
+export const dynamic = "force-static";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import type { Metadata } from "next";
+import { TAX_YEAR } from "@/lib/tax";
+import HomePageClient from "./HomePageClient";
 
-const STATES = [{ slug: "texas", name: "Texas" }];
+export const metadata: Metadata = {
+  title: `Salary After Tax Calculator ${TAX_YEAR} — All 50 States, Free`,
+  description: `See your exact take-home pay for any salary in all 50 US states. $100K in Texas → $79,180/yr. $100K in Florida → $79,180/yr. $100K in New York → $68,915/yr. Powered by ${TAX_YEAR} IRS tax brackets. Instant, free, no signup.`,
+  alternates: { canonical: "https://www.takehomeusa.com/" },
+  openGraph: {
+    title: `Salary After Tax Calculator ${TAX_YEAR} — All 50 States`,
+    description: `What do you actually take home? $100K in Texas → $79,180/yr. $100K in California → $71,760/yr. Free ${TAX_YEAR} salary after tax calculator for all 50 states.`,
+    url: "https://www.takehomeusa.com",
+    siteName: "TakeHomeUSA",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `Salary After Tax Calculator — All 50 States (${TAX_YEAR})`,
+    description: `$100K salary? Texas → $79,180/yr take-home. New York → $68,915/yr. Free calculator for all 50 states.`,
+  },
+};
 
-export default function Home() {
-  const router = useRouter();
-  const [salary, setSalary] = useState("100000");
-  const [state, setState] = useState("texas");
-  const cleaned = useMemo(() => String(salary || "").replace(/[^\d]/g, ""), [salary]);
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "TakeHomeUSA",
+  url: "https://www.takehomeusa.com",
+  description: `Free salary after-tax calculator for all 50 US states. ${TAX_YEAR} IRS tax brackets.`,
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: "https://www.takehomeusa.com/salary/{salary}-salary-after-tax-{state}",
+    },
+    "query-input": "required name=salary required name=state",
+  },
+};
 
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "TakeHomeUSA",
+  url: "https://www.takehomeusa.com",
+  logo: "https://www.takehomeusa.com/logo.png",
+  description: "Free, accurate salary after-tax calculators for all 50 US states.",
+  foundingDate: "2024",
+  areaServed: "US",
+};
+
+const softwareSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: `TakeHomeUSA Salary Calculator ${TAX_YEAR}`,
+  applicationCategory: "FinanceApplication",
+  operatingSystem: "Web",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  description: `Calculate your exact take-home pay after federal and state taxes for all 50 US states. Uses ${TAX_YEAR} IRS tax brackets.`,
+  url: "https://www.takehomeusa.com",
+  featureList: [
+    "All 50 US states",
+    `${TAX_YEAR} IRS tax brackets`,
+    "Federal + state tax breakdown",
+    "Monthly, bi-weekly, hourly pay",
+    "Effective and marginal tax rates",
+    "No signup required",
+    "100% free",
+  ],
+};
+
+export default function HomePage() {
   return (
-    <main className="min-h-screen flex items-center justify-center p-8">
-      <div className="w-full max-w-xl">
-        <h1 className="text-5xl font-bold leading-tight">Take Home Pay Calculator</h1>
-        <p className="mt-3 text-lg opacity-80">
-          Enter your salary and state to see your after-tax take-home pay.
-        </p>
-
-        <div className="mt-8 grid gap-4">
-          <label className="grid gap-2">
-            <span className="text-sm font-medium">Annual Salary</span>
-            <input
-              inputMode="numeric"
-              value={salary}
-              onChange={(e) => setSalary(e.target.value)}
-              placeholder="100000"
-              className="border rounded px-4 py-3 text-lg"
-            />
-          </label>
-
-          <label className="grid gap-2">
-            <span className="text-sm font-medium">State</span>
-            <select
-              value={state}
-              onChange={(e) => setState(e.target.value)}
-              className="border rounded px-4 py-3 text-lg"
-            >
-              {STATES.map((s) => (
-                <option key={s.slug} value={s.slug}>{s.name}</option>
-              ))}
-            </select>
-          </label>
-
-          <button
-            className="rounded bg-black text-white px-4 py-3 text-lg hover:opacity-90"
-            onClick={() => {
-              if (!cleaned) return;
-              router.push(`/${state}/${cleaned}-salary-after-tax`);
-            }}
-          >
-            Calculate
-          </button>
-
-          <p className="text-sm opacity-70">
-            Try: <a className="underline" href="/salary/100000-salary-after-tax-texas">Texas $100,000</a>
-          </p>
-        </div>
-      </div>
-    </main>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
+      />
+      <HomePageClient />
+    </>
   );
 }
