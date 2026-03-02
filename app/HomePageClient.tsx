@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ALL_STATE_CONFIGS, STATE_BY_SLUG } from "@/lib/states";
 import { calculateTax, fmt, pct, TAX_YEAR, POPULAR_SALARIES } from "@/lib/tax";
+import { CITIES_BY_STATE, CITY_BY_SLUG } from "@/lib/cities";
 
 // ─── Grouped states for the select dropdown ───────────────────────────────────
 const NO_TAX_STATES  = ALL_STATE_CONFIGS.filter((s) => s.noTax);
@@ -39,6 +40,10 @@ export default function HomePageClient() {
   const [stateSlug, setStateSlug] = useState("texas");
   const [filing, setFiling] = useState<"single" | "married">("single");
   const [contribution401k, setContribution401k] = useState("");
+  const [citySlug, setCitySlug] = useState("");
+  const [inputMode, setInputMode] = useState<"annual" | "hourly">("annual");
+  const [hourlyRate, setHourlyRate] = useState("");
+  const [hoursPerWeek, setHoursPerWeek] = useState("40");
   const [initialized, setInitialized] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -53,6 +58,14 @@ export default function HomePageClient() {
     if (f === "married") setFiling("married");
     const k = params.get("401k");
     if (k && /^\d+$/.test(k) && Number(k) > 0) setContribution401k(k);
+    const c = params.get("city");
+    if (c && CITY_BY_SLUG.has(c)) setCitySlug(c);
+    const m = params.get("mode");
+    if (m === "hourly") setInputMode("hourly");
+    const r = params.get("rate");
+    if (r && /^\d+(\.\d+)?$/.test(r) && parseFloat(r) > 0) setHourlyRate(r);
+    const hw = params.get("hours");
+    if (hw && /^\d+$/.test(hw) && Number(hw) >= 1 && Number(hw) <= 168) setHoursPerWeek(hw);
     setInitialized(true);
   }, []);
 
@@ -66,9 +79,16 @@ export default function HomePageClient() {
     if (filing !== "single") params.set("filing", filing);
     const k = Number(contribution401k.replace(/[^\d]/g, ""));
     if (k > 0) params.set("401k", String(k));
+    if (citySlug) params.set("city", citySlug);
+    if (inputMode === "hourly") {
+      params.set("mode", "hourly");
+      const r = parseFloat(hourlyRate);
+      if (r > 0) params.set("rate", String(r));
+      if (hoursPerWeek !== "40") params.set("hours", hoursPerWeek);
+    }
     const qs = params.toString();
     window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
-  }, [salary, stateSlug, filing, contribution401k, initialized]);
+  }, [salary, stateSlug, filing, contribution401k, citySlug, inputMode, hourlyRate, hoursPerWeek, initialized]);
 
   const handleCopyLink = useCallback(() => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -86,18 +106,45 @@ export default function HomePageClient() {
     return n > 0 ? n : 0;
   }, [contribution401k]);
 
+  const citiesForState = useMemo(() => CITIES_BY_STATE.get(stateSlug) ?? [], [stateSlug]);
+
+  const cityConfig = useMemo(() => {
+    const city = CITY_BY_SLUG.get(citySlug);
+    return city?.stateSlug === stateSlug ? city : undefined;
+  }, [citySlug, stateSlug]);
+
+  const grossAnnual = useMemo(() => {
+    if (inputMode === "hourly") {
+      const r = parseFloat(hourlyRate) || 0;
+      const h = parseInt(hoursPerWeek) || 40;
+      return Math.round(r * h * 52);
+    }
+    return Number(cleaned) || 0;
+  }, [inputMode, hourlyRate, hoursPerWeek, cleaned]);
+
   const previewTax = useMemo(() => {
-    const n = Number(cleaned);
+    const n = grossAnnual;
     if (!n || n < 1_000 || n > 100_000_000_000_000) return null;
-    return calculateTax(cfg, n, { filingStatus: filing, contribution401k: contrib401kNum });
-  }, [cleaned, cfg, filing, contrib401kNum]);
+    return calculateTax(cfg, n, { filingStatus: filing, contribution401k: contrib401kNum, cityConfig });
+  }, [grossAnnual, cfg, filing, contrib401kNum, cityConfig]);
 
   function handleCalculate() {
-    const raw = Number(cleaned);
+    const raw = grossAnnual;
     if (!raw || raw < 1_000) return;
     const step = stateSlug === "texas" ? 1_000 : 5_000;
     const rounded = Math.max(20_000, Math.min(500_000, Math.round(raw / step) * step));
-    router.push(`/salary/${rounded}-salary-after-tax-${stateSlug}`);
+    const params = new URLSearchParams();
+    if (filing !== "single") params.set("filing", filing);
+    if (contrib401kNum > 0) params.set("401k", String(contrib401kNum));
+    if (citySlug) params.set("city", citySlug);
+    if (inputMode === "hourly") {
+      params.set("mode", "hourly");
+      const r = parseFloat(hourlyRate);
+      if (r > 0) params.set("rate", String(r));
+      if (hoursPerWeek !== "40") params.set("hours", hoursPerWeek);
+    }
+    const qs = params.toString();
+    router.push(`/salary/${rounded}-salary-after-tax-${stateSlug}${qs ? `?${qs}` : ""}`);
   }
 
   const { name: stateName, noTax, topRateDisplay } = cfg;
@@ -179,23 +226,75 @@ export default function HomePageClient() {
                 </p>
 
                 <div className="space-y-4 mb-4">
-                  {/* Salary input */}
-                  <label className="block">
-                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
-                      Annual Gross Salary
-                    </span>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl font-bold">$</span>
-                      <input
-                        inputMode="numeric"
-                        value={salary}
-                        onChange={(e) => setSalary(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleCalculate()}
-                        placeholder="100,000"
-                        className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-4 text-2xl font-extrabold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
-                      />
+                  {/* Input mode toggle */}
+                  <div className="flex bg-gray-100 rounded-2xl p-1">
+                    <button
+                      type="button"
+                      onClick={() => setInputMode("annual")}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${inputMode === "annual" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+                    >
+                      Annual Salary
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInputMode("hourly")}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${inputMode === "hourly" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+                    >
+                      Hourly Wage
+                    </button>
+                  </div>
+
+                  {/* Salary or Hourly input */}
+                  {inputMode === "annual" ? (
+                    <label className="block">
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
+                        Annual Gross Salary
+                      </span>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl font-bold">$</span>
+                        <input
+                          inputMode="numeric"
+                          value={salary}
+                          onChange={(e) => setSalary(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleCalculate()}
+                          placeholder="100,000"
+                          className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-4 text-2xl font-extrabold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                        />
+                      </div>
+                    </label>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="block">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
+                          Hourly Rate
+                        </span>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl font-bold">$</span>
+                          <input
+                            inputMode="decimal"
+                            value={hourlyRate}
+                            onChange={(e) => setHourlyRate(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleCalculate()}
+                            placeholder="25.00"
+                            className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-4 text-2xl font-extrabold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                          />
+                        </div>
+                      </label>
+                      <label className="block">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
+                          Hours / Week
+                        </span>
+                        <input
+                          inputMode="numeric"
+                          value={hoursPerWeek}
+                          onChange={(e) => setHoursPerWeek(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleCalculate()}
+                          placeholder="40"
+                          className="w-full border-2 border-gray-200 rounded-2xl px-4 py-4 text-2xl font-extrabold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 text-center transition-all"
+                        />
+                      </label>
                     </div>
-                  </label>
+                  )}
 
                   {/* State select — all 50 states, grouped */}
                   <label className="block">
@@ -204,7 +303,7 @@ export default function HomePageClient() {
                     </span>
                     <select
                       value={stateSlug}
-                      onChange={(e) => setStateSlug(e.target.value)}
+                      onChange={(e) => { setStateSlug(e.target.value); setCitySlug(""); }}
                       className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3.5 text-base font-semibold focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 bg-white transition-all"
                     >
                       <optgroup label="No State Income Tax (9 States)">
@@ -230,6 +329,27 @@ export default function HomePageClient() {
                       </optgroup>
                     </select>
                   </label>
+
+                  {/* City / local tax — only shown for states with city taxes */}
+                  {citiesForState.length > 0 && (
+                    <label className="block">
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
+                        City / Local Tax <span className="font-normal normal-case">(optional)</span>
+                      </span>
+                      <select
+                        value={citySlug}
+                        onChange={(e) => setCitySlug(e.target.value)}
+                        className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3.5 text-base font-semibold focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 bg-white transition-all"
+                      >
+                        <option value="">No city tax</option>
+                        {citiesForState.map((c) => (
+                          <option key={c.slug} value={c.slug}>
+                            {c.name} — {c.topRateDisplay}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
 
                   {/* Filing status */}
                   <label className="block">
@@ -270,6 +390,11 @@ export default function HomePageClient() {
                     <p className="text-xs font-bold text-green-600 uppercase tracking-widest mb-1">
                       {stateName} Take-Home — {TAX_YEAR}
                     </p>
+                    {inputMode === "hourly" && (
+                      <p className="text-xs text-green-600 mb-1">
+                        ${hourlyRate}/hr × {hoursPerWeek}h/wk × 52 = {fmt(grossAnnual)}/yr gross
+                      </p>
+                    )}
                     <p className="text-4xl font-black text-green-700 mb-3 tabular-nums">
                       {fmt(previewTax.takeHome)}
                       <span className="text-lg font-semibold text-green-500 ml-1">/yr</span>
@@ -292,6 +417,9 @@ export default function HomePageClient() {
                       {!noTax && (
                         <div className="bg-purple-400" style={{ width: `${(previewTax.stateTax / previewTax.gross) * 100}%` }} />
                       )}
+                      {previewTax.cityTax > 0 && (
+                        <div className="bg-teal-400" style={{ width: `${(previewTax.cityTax / previewTax.gross) * 100}%` }} />
+                      )}
                       <div className="bg-orange-300" style={{ width: `${(previewTax.ficaTotal / previewTax.gross) * 100}%` }} />
                       {previewTax.contribution401k > 0 && (
                         <div className="bg-blue-300" style={{ width: `${(previewTax.contribution401k / previewTax.gross) * 100}%` }} />
@@ -300,6 +428,7 @@ export default function HomePageClient() {
                     </div>
                     <p className="text-xs text-gray-400 mt-1">
                       {noTax ? "No state tax · " : `State tax: ${pct(previewTax.stateTax / previewTax.gross)} · `}
+                      {previewTax.cityTax > 0 && cityConfig ? `City tax: ${pct(previewTax.cityTax / previewTax.gross)} · ` : ""}
                       Effective rate: {(previewTax.effectiveTotalRate * 100).toFixed(1)}%
                     </p>
                     {/* Copy Link */}
@@ -324,7 +453,7 @@ export default function HomePageClient() {
 
                 <button
                   onClick={handleCalculate}
-                  disabled={!cleaned || Number(cleaned) < 1_000}
+                  disabled={grossAnnual < 1_000}
                   className="w-full py-4 rounded-2xl text-white font-extrabold text-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ background: "linear-gradient(90deg, #1d4ed8, #2563eb)" }}
                 >

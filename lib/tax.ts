@@ -26,6 +26,7 @@ export const FEDERAL_BRACKETS_2026 = FEDERAL_BRACKETS;
 export interface CalcOptions {
   filingStatus?: "single" | "married";
   contribution401k?: number;
+  cityConfig?: CityTaxConfig;
 }
 
 export interface TaxResult {
@@ -44,6 +45,7 @@ export interface TaxResult {
   effectiveTotalRate: number;
   marginalRate: number;
   contribution401k: number;
+  cityTax: number;
 }
 
 // ─── Federal Tax Calculator ───────────────────────────────────────────────────
@@ -62,9 +64,11 @@ function calcFederal(taxable: number): { tax: number; marginalRate: number } {
 // ─── Generic Multi-State Tax Calculator ──────────────────────────────────────
 import type { StateTaxConfig } from "./states";
 import { calcStateOnly } from "./states";
+import type { CityTaxConfig } from "./cities";
+import { calcCityTax } from "./cities";
 
 export function calculateTax(stateConfig: StateTaxConfig, gross: number, options: CalcOptions = {}): TaxResult {
-  const { filingStatus = "single", contribution401k = 0 } = options;
+  const { filingStatus = "single", contribution401k = 0, cityConfig } = options;
   const stdDeduction = filingStatus === "married" ? STANDARD_DEDUCTION_MARRIED : STANDARD_DEDUCTION_SINGLE;
   const preTax = Math.max(0, Math.min(contribution401k, gross));
 
@@ -76,8 +80,10 @@ export function calculateTax(stateConfig: StateTaxConfig, gross: number, options
   const additionalMedicare = Math.max(0, gross - ADDL_MEDICARE_THRESHOLD) * 0.009;
   const ficaTotal = socialSecurity + medicare + additionalMedicare;
 
-  const stateTax = calcStateOnly(stateConfig, Math.max(0, gross - preTax));
-  const totalTax = federalTax + ficaTotal + stateTax;
+  const adjustedGross = Math.max(0, gross - preTax);
+  const stateTax = calcStateOnly(stateConfig, adjustedGross);
+  const cityTax = cityConfig ? calcCityTax(cityConfig, adjustedGross) : 0;
+  const totalTax = federalTax + ficaTotal + stateTax + cityTax;
   const takeHome = gross - totalTax - preTax;
 
   return {
@@ -96,6 +102,7 @@ export function calculateTax(stateConfig: StateTaxConfig, gross: number, options
     effectiveTotalRate: gross > 0 ? totalTax / gross : 0,
     marginalRate,
     contribution401k: preTax,
+    cityTax,
   };
 }
 
@@ -130,6 +137,7 @@ export function calculateTexasTax(gross: number): TaxResult {
     effectiveTotalRate: gross > 0 ? totalTax / gross : 0,
     marginalRate,
     contribution401k: 0,
+    cityTax: 0,
   };
 }
 

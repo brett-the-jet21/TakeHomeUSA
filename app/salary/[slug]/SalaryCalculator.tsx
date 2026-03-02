@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { calculateTax, fmt, pct, TAX_YEAR, FEDERAL_BRACKETS_2026 } from "@/lib/tax";
 import type { StateTaxConfig } from "@/lib/states";
+import { CITIES_BY_STATE, CITY_BY_SLUG } from "@/lib/cities";
 
 const BRACKET_LABELS = [
   "$0 – $12,400",
@@ -27,29 +28,48 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
   const [showHowWeCalc, setShowHowWeCalc] = useState(false);
   const [filing, setFiling] = useState<"single" | "married">("single");
   const [contribution401k, setContribution401k] = useState("");
+  const [citySlug, setCitySlug] = useState("");
+  const [inputMode, setInputMode] = useState<"annual" | "hourly">("annual");
+  const [hourlyRate, setHourlyRate] = useState("");
+  const [hoursPerWeek, setHoursPerWeek] = useState("40");
   const [initialized, setInitialized] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Read URL params on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const m = params.get("mode");
+    if (m === "hourly") setInputMode("hourly");
+    const r = params.get("rate");
+    if (r && /^\d+(\.\d+)?$/.test(r) && parseFloat(r) > 0) setHourlyRate(r);
+    const hw = params.get("hours");
+    if (hw && /^\d+$/.test(hw) && Number(hw) >= 1 && Number(hw) <= 168) setHoursPerWeek(hw);
     const f = params.get("filing");
     if (f === "married") setFiling("married");
     const k = params.get("401k");
     if (k && /^\d+$/.test(k) && Number(k) > 0) setContribution401k(k);
+    const c = params.get("city");
+    if (c && CITY_BY_SLUG.has(c)) setCitySlug(c);
     setInitialized(true);
   }, []);
 
-  // Write URL params when filing/401k change (only after initialization)
+  // Write URL params when inputs change (only after initialization)
   useEffect(() => {
     if (!initialized) return;
     const params = new URLSearchParams();
+    if (inputMode === "hourly") {
+      params.set("mode", "hourly");
+      const r = parseFloat(hourlyRate);
+      if (r > 0) params.set("rate", String(r));
+      if (hoursPerWeek !== "40") params.set("hours", hoursPerWeek);
+    }
     if (filing !== "single") params.set("filing", filing);
     const k = Number(contribution401k.replace(/[^\d]/g, ""));
     if (k > 0) params.set("401k", String(k));
+    if (citySlug) params.set("city", citySlug);
     const qs = params.toString();
     window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
-  }, [filing, contribution401k, initialized]);
+  }, [inputMode, hourlyRate, hoursPerWeek, filing, contribution401k, citySlug, initialized]);
 
   const handleCopyLink = useCallback(() => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -59,18 +79,39 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
   }, []);
 
   const amount = useMemo(() => {
+    if (inputMode === "hourly") {
+      const r = parseFloat(hourlyRate) || 0;
+      const h = parseInt(hoursPerWeek) || 40;
+      const annual = Math.round(r * h * 52);
+      return annual >= 1_000 ? annual : initialAmount;
+    }
     const n = Number(salaryInput.replace(/[^0-9]/g, ""));
     return n >= 1_000 && n <= 100_000_000_000_000 ? n : initialAmount;
-  }, [salaryInput, initialAmount]);
+  }, [inputMode, salaryInput, hourlyRate, hoursPerWeek, initialAmount]);
+
+  const annualHours = useMemo(() => {
+    if (inputMode === "hourly") {
+      const h = parseInt(hoursPerWeek) || 40;
+      return h * 52;
+    }
+    return 2080;
+  }, [inputMode, hoursPerWeek]);
 
   const contrib401kNum = useMemo(() => {
     const n = Number(contribution401k.replace(/[^\d]/g, ""));
     return n > 0 ? n : 0;
   }, [contribution401k]);
 
+  const citiesForState = useMemo(() => CITIES_BY_STATE.get(stateConfig.slug) ?? [], [stateConfig.slug]);
+
+  const cityConfig = useMemo(() => {
+    const city = CITY_BY_SLUG.get(citySlug);
+    return city?.stateSlug === stateConfig.slug ? city : undefined;
+  }, [citySlug, stateConfig.slug]);
+
   const tax = useMemo(
-    () => calculateTax(stateConfig, amount, { filingStatus: filing, contribution401k: contrib401kNum }),
-    [stateConfig, amount, filing, contrib401kNum]
+    () => calculateTax(stateConfig, amount, { filingStatus: filing, contribution401k: contrib401kNum, cityConfig }),
+    [stateConfig, amount, filing, contrib401kNum, cityConfig]
   );
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,37 +119,47 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
   }, []);
 
   const handleNavigate = useCallback(() => {
-    const n = Number(salaryInput.replace(/[^0-9]/g, ""));
+    const n = inputMode === "hourly"
+      ? Math.round((parseFloat(hourlyRate) || 0) * (parseInt(hoursPerWeek) || 40) * 52)
+      : Number(salaryInput.replace(/[^0-9]/g, ""));
     if (n >= 1_000 && n <= 100_000_000_000_000) {
       const params = new URLSearchParams();
+      if (inputMode === "hourly") {
+        params.set("mode", "hourly");
+        const r = parseFloat(hourlyRate);
+        if (r > 0) params.set("rate", String(r));
+        if (hoursPerWeek !== "40") params.set("hours", hoursPerWeek);
+      }
       if (filing !== "single") params.set("filing", filing);
       const k = Number(contribution401k.replace(/[^\d]/g, ""));
       if (k > 0) params.set("401k", String(k));
+      if (citySlug) params.set("city", citySlug);
       const qs = params.toString();
       router.push(`/salary/${n}-salary-after-tax-${stateConfig.slug}${qs ? `?${qs}` : ""}`);
     }
-  }, [salaryInput, router, stateConfig.slug, filing, contribution401k]);
+  }, [inputMode, salaryInput, hourlyRate, hoursPerWeek, router, stateConfig.slug, filing, contribution401k, citySlug]);
 
   const { name: stateName, noTax, slug: stateSlug, topRateDisplay } = stateConfig;
 
   const amtFmt = amount.toLocaleString("en-US");
   const monthly  = tax.takeHome / 12;
   const biweekly = tax.takeHome / 26;
-  const hourly   = tax.takeHome / 2080;
+  const hourly   = tax.takeHome / annualHours;
 
   // Visual bar percentages
   const fedPct   = tax.gross > 0 ? (tax.federalTax  / tax.gross) * 100 : 0;
   const statePct = tax.gross > 0 ? (tax.stateTax    / tax.gross) * 100 : 0;
+  const cityPct  = tax.gross > 0 ? (tax.cityTax     / tax.gross) * 100 : 0;
   const ficaPct  = tax.gross > 0 ? (tax.ficaTotal   / tax.gross) * 100 : 0;
   const takePct  = tax.gross > 0 ? (tax.takeHome    / tax.gross) * 100 : 100;
 
   const periods = [
-    { label: "Annual",    divisor: 1    },
-    { label: "Monthly",   divisor: 12   },
-    { label: "Bi-Weekly", divisor: 26   },
-    { label: "Weekly",    divisor: 52   },
-    { label: "Daily",     divisor: 260  },
-    { label: "Hourly",    divisor: 2080 },
+    { label: "Annual",    divisor: 1          },
+    { label: "Monthly",   divisor: 12         },
+    { label: "Bi-Weekly", divisor: 26         },
+    { label: "Weekly",    divisor: 52         },
+    { label: "Daily",     divisor: 260        },
+    { label: "Hourly",    divisor: annualHours },
   ];
 
   // Scale nearby steps to the magnitude of the current amount
@@ -158,7 +209,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
     },
     {
       q: `How much is $${amtFmt} a year per hour after taxes in ${stateName}?`,
-      a: `Based on 2,080 hours/year (40 hrs/week × 52 weeks), a $${amtFmt} salary in ${stateName} works out to ${fmt(hourly)} per hour after taxes.`,
+      a: `Based on ${annualHours.toLocaleString()} hours/year (${parseInt(hoursPerWeek) || 40} hrs/week × 52 weeks), a $${amtFmt} salary in ${stateName} works out to ${fmt(hourly)} per hour after taxes.`,
     },
   ];
 
@@ -189,30 +240,84 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
 
       {/* Real-Time Salary Input */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-5 mb-7">
-        <label className="block text-sm font-bold text-gray-700 mb-2">
-          Adjust Salary — All Results Update Instantly
-        </label>
-        <div className="flex gap-3 mb-3">
-          <div className="relative flex-1">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg pointer-events-none">$</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={salaryInput}
-              onChange={handleChange}
-              onKeyDown={(e) => e.key === "Enter" && handleNavigate()}
-              className="w-full pl-8 pr-4 py-3.5 border-2 border-blue-300 rounded-xl text-xl font-extrabold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
-              placeholder="100000"
-              aria-label="Annual salary amount"
-            />
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-bold text-gray-700">
+            Adjust Pay — All Results Update Instantly
+          </label>
+          <div className="flex bg-blue-100 rounded-lg p-0.5">
+            <button
+              type="button"
+              onClick={() => setInputMode("annual")}
+              className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${inputMode === "annual" ? "bg-white shadow text-gray-900" : "text-blue-600 hover:text-blue-800"}`}
+            >
+              Annual
+            </button>
+            <button
+              type="button"
+              onClick={() => setInputMode("hourly")}
+              className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${inputMode === "hourly" ? "bg-white shadow text-gray-900" : "text-blue-600 hover:text-blue-800"}`}
+            >
+              Hourly
+            </button>
           </div>
-          <button
-            onClick={handleNavigate}
-            className="bg-blue-700 text-white px-5 py-3.5 rounded-xl font-bold hover:bg-blue-800 transition-colors whitespace-nowrap text-sm shadow-sm"
-          >
-            Full Page →
-          </button>
         </div>
+        {inputMode === "annual" ? (
+          <div className="flex gap-3 mb-3">
+            <div className="relative flex-1">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg pointer-events-none">$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={salaryInput}
+                onChange={handleChange}
+                onKeyDown={(e) => e.key === "Enter" && handleNavigate()}
+                className="w-full pl-8 pr-4 py-3.5 border-2 border-blue-300 rounded-xl text-xl font-extrabold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
+                placeholder="100000"
+                aria-label="Annual salary amount"
+              />
+            </div>
+            <button
+              onClick={handleNavigate}
+              className="bg-blue-700 text-white px-5 py-3.5 rounded-xl font-bold hover:bg-blue-800 transition-colors whitespace-nowrap text-sm shadow-sm"
+            >
+              Full Page →
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2 mb-3">
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-base pointer-events-none">$</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={hourlyRate}
+                onChange={(e) => setHourlyRate(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleNavigate()}
+                className="w-full pl-7 pr-2 py-3.5 border-2 border-blue-300 rounded-xl text-xl font-extrabold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
+                placeholder="25.00"
+                aria-label="Hourly wage"
+              />
+            </div>
+            <div className="w-20 flex-shrink-0">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={hoursPerWeek}
+                onChange={(e) => setHoursPerWeek(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleNavigate()}
+                className="w-full px-2 py-3.5 border-2 border-blue-300 rounded-xl text-xl font-extrabold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-center transition-all"
+                aria-label="Hours per week"
+              />
+              <p className="text-xs text-center text-gray-400 mt-0.5">hrs/wk</p>
+            </div>
+            <button
+              onClick={handleNavigate}
+              className="bg-blue-700 text-white px-4 py-3.5 rounded-xl font-bold hover:bg-blue-800 transition-colors whitespace-nowrap text-sm shadow-sm"
+            >
+              Full Page →
+            </button>
+          </div>
+        )}
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Filing Status</label>
@@ -239,9 +344,27 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
               />
             </div>
           </div>
+          {citiesForState.length > 0 && (
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-gray-600 mb-1">City / Local Tax</label>
+              <select
+                value={citySlug}
+                onChange={(e) => setCitySlug(e.target.value)}
+                className="w-full border border-blue-200 rounded-xl px-3 py-2 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+              >
+                <option value="">No city tax</option>
+                {citiesForState.map((c) => (
+                  <option key={c.slug} value={c.slug}>{c.name} — {c.topRateDisplay}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
         <p className="text-xs text-gray-400 mt-2">
-          Type any salary · Numbers refresh live · Enter or click to navigate to a dedicated page
+          {inputMode === "hourly"
+            ? `$${hourlyRate || "0"}/hr × ${hoursPerWeek}h/wk × 52 = ${amount >= 1_000 ? fmt(amount) : "$0"}/yr · Enter or click Full Page to navigate`
+            : "Type any salary · Numbers refresh live · Enter or click to navigate to a dedicated page"
+          }
         </p>
       </div>
 
@@ -345,6 +468,17 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
               )}
             </div>
           )}
+          {cityPct > 0 && (
+            <div
+              className="bg-teal-500 flex items-center justify-center transition-all duration-300"
+              style={{ width: `${cityPct}%` }}
+              title={`City Tax: ${pct(cityPct / 100)}`}
+            >
+              {cityPct > 3 && (
+                <span className="text-white text-xs font-bold px-1 truncate">City {pct(cityPct / 100)}</span>
+              )}
+            </div>
+          )}
           <div
             className="bg-orange-400 flex items-center justify-center transition-all duration-300"
             style={{ width: `${ficaPct}%` }}
@@ -372,6 +506,12 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
             <span className="flex items-center gap-1.5">
               <span className="w-3 h-3 bg-purple-500 rounded-sm inline-block flex-shrink-0" />
               <span className="text-gray-700">State: <strong>{fmt(tax.stateTax)}</strong></span>
+            </span>
+          )}
+          {tax.cityTax > 0 && cityConfig && (
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 bg-teal-500 rounded-sm inline-block flex-shrink-0" />
+              <span className="text-gray-700">City ({cityConfig.name}): <strong>{fmt(tax.cityTax)}</strong></span>
             </span>
           )}
           <span className="flex items-center gap-1.5">
@@ -462,6 +602,18 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                       </td>
                       <td className="text-purple-700 tabular-nums">{pct(tax.stateTax / tax.gross)}</td>
                       <td className="text-purple-700 font-semibold tabular-nums">−{fmt(tax.stateTax)}</td>
+                    </tr>
+                  )}
+                  {tax.cityTax > 0 && cityConfig && (
+                    <tr className="bg-teal-50">
+                      <td className="font-medium text-gray-700">
+                        {cityConfig.name} City Tax
+                        <span className="block text-xs text-gray-400 mt-0.5">
+                          {cityConfig.description}
+                        </span>
+                      </td>
+                      <td className="text-teal-700 tabular-nums">{pct(tax.cityTax / tax.gross)}</td>
+                      <td className="text-teal-700 font-semibold tabular-nums">−{fmt(tax.cityTax)}</td>
                     </tr>
                   )}
                   <tr className="bg-gray-50">
@@ -575,7 +727,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
               </table>
             </div>
             <p className="text-xs text-gray-400 mt-2">
-              Hourly assumes 2,080 hrs/year (40 hrs/week × 52 weeks). Daily assumes 260 working days/year.
+              Hourly assumes {annualHours.toLocaleString()} hrs/year ({parseInt(hoursPerWeek) || 40} hrs/week × 52 weeks). Daily assumes 260 working days/year.
             </p>
           </section>
 
