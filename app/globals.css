@@ -96,6 +96,63 @@ body {
     overflow-x: hidden;
   }
 
+  /* ── FIX 1: Consistent mobile spacing ──────────────────────────────────── */
+
+  /* Container: 16px horizontal padding (desktop keeps 1.25rem) */
+  .container-page {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Hero: tighter vertical padding — 32px instead of 64px */
+  .hero-content {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+  }
+
+  /* Main calculator card: 16px internal padding (desktop: p-6/p-8) */
+  .calc-card {
+    padding: 1rem !important;
+  }
+
+  /* Live-preview results box: 16px padding */
+  .preview-box {
+    padding: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  /* Compare page section cards: 16px padding + 24px bottom gap */
+  .compare-card {
+    padding: 1rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  /* Compare table card: 24px bottom gap (no padding — table is full-bleed) */
+  .compare-table-card {
+    margin-bottom: 1.5rem !important;
+  }
+  /* Table card inner header: reduce px-6 → 16px */
+  .compare-table-header {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Compare detail breakdown section wrapper: 24px bottom gap */
+  .compare-detail-section {
+    margin-bottom: 1.5rem !important;
+  }
+
+  /* Compare individual state cards: 16px all sides */
+  .compare-detail-card {
+    padding: 1rem !important;
+  }
+
+  /* Label → input gap: 8px (was mb-1.5 = 6px) */
+  /* Targets the heading spans inside <label> wrappers in form fields */
+  label > span.block:first-child {
+    margin-bottom: 0.5rem !important;
+  }
+
   /* Nav tap targets — every link/button in the header must be ≥ 44px tall   */
   header nav > a,
   header nav > button {

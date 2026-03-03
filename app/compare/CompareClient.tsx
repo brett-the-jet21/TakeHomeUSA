@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { ALL_STATE_CONFIGS, STATE_BY_SLUG } from "@/lib/states";
 import { calculateTax, fmt, pct, TAX_YEAR } from "@/lib/tax";
@@ -28,7 +28,19 @@ const FILING_OPTIONS: { value: "single" | "married"; label: string }[] = [
 export default function CompareClient() {
   const [states, setStates] = useState<string[]>(["texas", "california", "new-york"]);
   const [filing, setFiling] = useState<"single" | "married">("single");
+
+  // Salary: free-text input + debounced numeric value
+  const [salaryInput, setSalaryInput] = useState("100000");
   const [focusSalary, setFocusSalary] = useState(100_000);
+
+  // Debounce: update focusSalary 300ms after the user stops typing
+  useEffect(() => {
+    const n = Number(salaryInput.replace(/[^\d]/g, ""));
+    if (n >= 1_000 && n <= 100_000_000) {
+      const t = setTimeout(() => setFocusSalary(n), 300);
+      return () => clearTimeout(t);
+    }
+  }, [salaryInput]);
 
   const numSlots = 3;
 
@@ -40,7 +52,7 @@ export default function CompareClient() {
     });
   }
 
-  // For each state slug, compute results for all salary levels
+  // Pre-computed results for the table (preset salary levels only)
   const results = useMemo(() =>
     states.map((slug) => {
       const cfg = STATE_BY_SLUG.get(slug);
@@ -52,12 +64,21 @@ export default function CompareClient() {
     [states, filing]
   );
 
-  // For the bar chart, get take-home at focusSalary
-  const focusIdx = COMPARE_SALARIES.indexOf(focusSalary);
-  const focusResults = results.map((r) => r?.[focusIdx] ?? null);
-  const maxTakeHome = Math.max(...focusResults.map((r) => r?.takeHome ?? 0));
+  // Focus results: computed directly for any focusSalary (not limited to presets)
+  const focusResults = useMemo(() =>
+    states.map((slug) => {
+      const cfg = STATE_BY_SLUG.get(slug);
+      if (!cfg) return null;
+      return calculateTax(cfg, focusSalary, { filingStatus: filing });
+    }),
+    [states, filing, focusSalary]
+  );
 
+  const maxTakeHome = Math.max(...focusResults.map((r) => r?.takeHome ?? 0), 1);
   const activeCfgs = states.map((s) => STATE_BY_SLUG.get(s));
+
+  // Current parsed input value — used to highlight the matching preset button
+  const inputNum = Number(salaryInput.replace(/[^\d]/g, ""));
 
   return (
     <div className="container-page pb-16">
@@ -76,7 +97,7 @@ export default function CompareClient() {
       </div>
 
       {/* Controls */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-8 shadow-sm">
+      <div className="compare-card bg-white border border-gray-200 rounded-2xl p-5 mb-8 shadow-sm">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* State selectors */}
           {Array.from({ length: numSlots }).map((_, i) => (
@@ -120,27 +141,53 @@ export default function CompareClient() {
         <p className="text-xs text-gray-400 mt-3">★ = no state income tax</p>
       </div>
 
-      {/* Bar Chart — focus salary selector + bars */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-8 shadow-sm">
-        <div className="flex flex-wrap items-center gap-3 mb-6">
-          <h2 className="font-extrabold text-gray-900 text-lg mr-2">Take-Home at Salary:</h2>
+      {/* Bar Chart + custom salary input */}
+      <div className="compare-card bg-white border border-gray-200 rounded-2xl p-6 mb-8 shadow-sm">
+
+        {/* ── Salary input ────────────────────────────────────────── */}
+        <div className="mb-6">
+          <label className="block">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-2">
+              Annual Salary
+            </span>
+            <div className="relative mb-3">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl font-bold pointer-events-none">
+                $
+              </span>
+              <input
+                inputMode="numeric"
+                value={salaryInput}
+                onChange={(e) => setSalaryInput(e.target.value)}
+                placeholder="100,000"
+                aria-label="Annual salary for comparison"
+                className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-4 text-2xl font-extrabold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+              />
+            </div>
+          </label>
+
+          {/* Quick-fill preset buttons */}
           <div className="flex flex-wrap gap-2">
             {COMPARE_SALARIES.map((sal) => (
               <button
                 key={sal}
-                onClick={() => setFocusSalary(sal)}
+                type="button"
+                onClick={() => {
+                  setSalaryInput(String(sal));
+                  setFocusSalary(sal);
+                }}
                 className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                  sal === focusSalary
+                  sal === inputNum
                     ? "bg-blue-700 text-white shadow-sm"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                ${(sal / 1000).toFixed(0)}K
+                ${(sal / 1_000).toFixed(0)}K
               </button>
             ))}
           </div>
         </div>
 
+        {/* ── Bars ─────────────────────────────────────────────────── */}
         <div className="space-y-5">
           {focusResults.map((res, i) => {
             const cfg = activeCfgs[i];
@@ -186,7 +233,7 @@ export default function CompareClient() {
           })}
         </div>
 
-        {/* Savings callout between state 0 and others */}
+        {/* Savings callout */}
         {focusResults[0] && focusResults[1] && (
           <div className="mt-6 pt-5 border-t border-gray-100">
             <p className="text-sm text-gray-500">
@@ -213,8 +260,8 @@ export default function CompareClient() {
       </div>
 
       {/* Full Comparison Table */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm mb-8">
-        <div className="px-6 py-4 border-b border-gray-100">
+      <div className="compare-table-card bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm mb-8">
+        <div className="compare-table-header px-6 py-4 border-b border-gray-100">
           <h2 className="font-extrabold text-gray-900">Full Take-Home Comparison — All Salary Levels</h2>
           <p className="text-sm text-gray-500 mt-0.5">{TAX_YEAR} · {filing === "married" ? "Married filing jointly" : "Single filer"} · Standard deduction</p>
         </div>
@@ -240,7 +287,7 @@ export default function CompareClient() {
                 <tr
                   key={sal}
                   className={`border-b border-gray-100 ${sal === focusSalary ? "bg-blue-50" : rowIdx % 2 === 0 ? "" : "bg-gray-50/50"}`}
-                  onClick={() => setFocusSalary(sal)}
+                  onClick={() => { setFocusSalary(sal); setSalaryInput(String(sal)); }}
                   style={{ cursor: "pointer" }}
                 >
                   <td className="px-5 py-3 font-semibold text-gray-900">
@@ -268,7 +315,7 @@ export default function CompareClient() {
       </div>
 
       {/* Detailed Breakdown for Focus Salary */}
-      <div className="mb-8">
+      <div className="compare-detail-section mb-8">
         <h2 className="text-xl font-extrabold text-gray-900 mb-4">
           Detailed Breakdown at ${focusSalary.toLocaleString()}
         </h2>
@@ -277,20 +324,20 @@ export default function CompareClient() {
             const cfg = activeCfgs[i];
             if (!cfg || !res) return null;
             return (
-              <div key={i} className={`rounded-2xl border-2 p-5 ${SLOT_BORDER[i]} ${SLOT_BG[i]}`}>
+              <div key={i} className={`compare-detail-card rounded-2xl border-2 p-5 ${SLOT_BORDER[i]} ${SLOT_BG[i]}`}>
                 <div className="flex items-center gap-2 mb-4">
                   <span className={`w-3 h-3 rounded-full ${SLOT_DOT[i]}`} />
                   <h3 className={`font-extrabold text-base ${SLOT_LABEL[i]}`}>{cfg.name}</h3>
                 </div>
                 <div className="space-y-2 text-sm">
                   {[
-                    { label: "Gross Salary",       val: fmt(res.gross),       bold: false },
-                    { label: "Federal Income Tax",  val: `−${fmt(res.federalTax)}`,  red: true },
-                    { label: "Social Security",     val: `−${fmt(res.socialSecurity)}`, red: true },
-                    { label: "Medicare",            val: `−${fmt(res.medicare)}`, red: true },
+                    { label: "Gross Salary",         val: fmt(res.gross),                     bold: false },
+                    { label: "Federal Income Tax",    val: `−${fmt(res.federalTax)}`,          red: true   },
+                    { label: "Social Security",       val: `−${fmt(res.socialSecurity)}`,      red: true   },
+                    { label: "Medicare",              val: `−${fmt(res.medicare)}`,             red: true   },
                     { label: `${cfg.name} State Tax`, val: cfg.noTax ? "$0" : `−${fmt(res.stateTax)}`, green: cfg.noTax, red: !cfg.noTax },
-                    { label: "Total Tax",           val: `−${fmt(res.totalTax)}`, bold: true, red: true },
-                    { label: "Take-Home Pay",       val: fmt(res.takeHome), bold: true, green: true },
+                    { label: "Total Tax",             val: `−${fmt(res.totalTax)}`,            bold: true, red: true  },
+                    { label: "Take-Home Pay",         val: fmt(res.takeHome),                  bold: true, green: true },
                   ].map(({ label, val, bold, red, green }) => (
                     <div key={label} className="flex justify-between border-b border-gray-200/60 pb-1.5 last:border-0">
                       <span className={`text-gray-600 ${bold ? "font-bold" : ""}`}>{label}</span>
@@ -317,7 +364,7 @@ export default function CompareClient() {
                 <div className="mt-4">
                   <Link
                     href={`/salary/${focusSalary}-salary-after-tax-${cfg.slug}`}
-                    className={`block text-center text-xs font-bold py-2 rounded-xl transition-colors text-white`}
+                    className="block text-center text-xs font-bold py-2 rounded-xl transition-colors text-white"
                     style={{ backgroundColor: SLOT_COLORS[i] }}
                   >
                     Full {cfg.name} Breakdown →
@@ -330,7 +377,7 @@ export default function CompareClient() {
       </div>
 
       {/* FAQ */}
-      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-8">
+      <div className="compare-card bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-8">
         <h2 className="text-xl font-extrabold text-gray-900 mb-5">Frequently Asked Questions</h2>
         <div className="space-y-4">
           {[

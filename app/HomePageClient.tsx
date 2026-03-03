@@ -268,7 +268,7 @@ export default function HomePageClient() {
           }}
         />
 
-        <div className="container-page relative py-16 sm:py-22">
+        <div className="hero-content container-page relative py-16 sm:py-22">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
 
             {/* Left copy */}
@@ -313,7 +313,7 @@ export default function HomePageClient() {
 
             {/* Right: Calculator card */}
             <div>
-              <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 text-gray-900">
+              <div className="calc-card bg-white rounded-3xl shadow-2xl p-6 sm:p-8 text-gray-900">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 text-center">
                   Salary After Tax Calculator — {TAX_YEAR}
                 </p>
@@ -574,7 +574,7 @@ export default function HomePageClient() {
 
                 {/* Live Preview */}
                 {previewTax ? (
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-5 mb-4">
+                  <div className="preview-box bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-5 mb-4">
                     <p className="text-xs font-bold text-green-600 uppercase tracking-widest mb-1">
                       {stateName} Take-Home — {TAX_YEAR}
                     </p>
