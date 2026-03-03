@@ -86,3 +86,56 @@ body {
 .tax-table .row-highlight td {
   background: #eff6ff;
 }
+
+/* ── Mobile — ≤767px ─────────────────────────────────────────────────────── */
+/* ALL rules below are mobile-only. Zero effect on desktop (≥768px).        */
+@media (max-width: 767px) {
+
+  /* Prevent any element from causing horizontal page scroll */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Nav tap targets — every link/button in the header must be ≥ 44px tall   */
+  header nav > a,
+  header nav > button {
+    min-height: 44px;
+    display: inline-flex !important;
+    align-items: center;
+  }
+
+  /* Salary showcase: compact cards for 3-column layout on narrow screens     */
+  .salary-card-mobile {
+    padding: 0.625rem !important;    /* p-2.5 */
+  }
+  .salary-card-mobile .salary-gross-label {
+    margin-bottom: 0.125rem;
+  }
+  .salary-card-mobile .salary-gross-amount {
+    font-size: 0.875rem;            /* text-sm  */
+    margin-bottom: 0.375rem;
+  }
+  .salary-card-mobile .salary-divider {
+    margin-bottom: 0.375rem;
+  }
+  .salary-card-mobile .salary-takehome-amount {
+    font-size: 1rem;                /* text-base */
+  }
+  .salary-card-mobile .salary-monthly-line {
+    display: none;                  /* hide monthly/eff-rate on 3-col mobile  */
+  }
+  .salary-card-mobile .salary-cta {
+    margin-top: 0.375rem;
+  }
+
+  /* Compare page — bar chart detail row: wrap Fed/FICA/State/Effective       */
+  .compare-detail-row {
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+  }
+
+  /* Footer grid: full-width single column on mobile                          */
+  footer .container-page > div {
+    grid-template-columns: 1fr;
+  }
+}

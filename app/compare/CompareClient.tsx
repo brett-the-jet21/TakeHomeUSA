@@ -1,480 +1,379 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ALL_STATE_CONFIGS, STATE_BY_SLUG } from "@/lib/states";
 import { calculateTax, fmt, pct, TAX_YEAR } from "@/lib/tax";
 
-const DEFAULT_STATE_SLUGS = [
-  "texas",
-  "florida",
-  "nevada",
-  "washington",
-  "california",
-  "new-york",
-  "illinois",
-  "colorado",
-  "virginia",
-  "oregon",
+const COMPARE_SALARIES = [50_000, 75_000, 100_000, 125_000, 150_000, 200_000];
+
+const STATE_OPTIONS = ALL_STATE_CONFIGS.map((s) => ({
+  value: s.slug,
+  label: s.name,
+  noTax: s.noTax,
+}));
+
+// Bar chart colors per slot
+const SLOT_COLORS = ["#3b82f6", "#ef4444", "#10b981"];
+const SLOT_BORDER = ["border-blue-400", "border-red-400", "border-emerald-400"];
+const SLOT_BG     = ["bg-blue-50", "bg-red-50", "bg-emerald-50"];
+const SLOT_LABEL  = ["text-blue-700", "text-red-700", "text-emerald-700"];
+const SLOT_DOT    = ["bg-blue-500", "bg-red-500", "bg-emerald-500"];
+
+const FILING_OPTIONS: { value: "single" | "married"; label: string }[] = [
+  { value: "single",  label: "Single" },
+  { value: "married", label: "Married Filing Jointly" },
 ];
 
-const NO_TAX_SLUGS = ALL_STATE_CONFIGS.filter((s) => s.noTax).map((s) => s.slug);
-
 export default function CompareClient() {
-  const [salary, setSalary] = useState("100000");
+  const [states, setStates] = useState<string[]>(["texas", "california", "new-york"]);
   const [filing, setFiling] = useState<"single" | "married">("single");
-  const [selectedSlugs, setSelectedSlugs] = useState<string[]>(DEFAULT_STATE_SLUGS);
-  const [addSlug, setAddSlug] = useState("");
+  const [focusSalary, setFocusSalary] = useState(100_000);
 
-  const cleanSalary = useMemo(() => {
-    const n = Number(salary.replace(/[^\d]/g, ""));
-    return n >= 1_000 && n <= 100_000_000 ? n : 0;
-  }, [salary]);
+  const numSlots = 3;
 
-  const rows = useMemo(() => {
-    if (!cleanSalary) return [];
-    return selectedSlugs
-      .flatMap((slug) => {
-        const cfg = STATE_BY_SLUG.get(slug);
-        if (!cfg) return [];
-        const tax = calculateTax(cfg, cleanSalary, { filingStatus: filing });
-        return [{ slug, cfg, tax }];
-      })
-      .sort((a, b) => b.tax.takeHome - a.tax.takeHome);
-  }, [cleanSalary, selectedSlugs, filing]);
+  function setSlot(idx: number, slug: string) {
+    setStates((prev) => {
+      const next = [...prev];
+      next[idx] = slug;
+      return next;
+    });
+  }
 
-  const maxTakeHome = rows.length > 0 ? Math.max(...rows.map((r) => r.tax.takeHome)) : 1;
-
-  const availableToAdd = ALL_STATE_CONFIGS.filter((s) => !selectedSlugs.includes(s.slug));
-
-  const removeState = useCallback((slug: string) => {
-    setSelectedSlugs((prev) => prev.filter((s) => s !== slug));
-  }, []);
-
-  const handleAddSlugChange = useCallback(
-    (slug: string) => {
-      setAddSlug("");
-      if (!slug || selectedSlugs.includes(slug)) return;
-      setSelectedSlugs((prev) => [...prev, slug]);
-    },
-    [selectedSlugs]
+  // For each state slug, compute results for all salary levels
+  const results = useMemo(() =>
+    states.map((slug) => {
+      const cfg = STATE_BY_SLUG.get(slug);
+      if (!cfg) return null;
+      return COMPARE_SALARIES.map((sal) =>
+        calculateTax(cfg, sal, { filingStatus: filing })
+      );
+    }),
+    [states, filing]
   );
 
-  const resetToDefaults = useCallback(() => {
-    setSelectedSlugs(DEFAULT_STATE_SLUGS);
-  }, []);
+  // For the bar chart, get take-home at focusSalary
+  const focusIdx = COMPARE_SALARIES.indexOf(focusSalary);
+  const focusResults = results.map((r) => r?.[focusIdx] ?? null);
+  const maxTakeHome = Math.max(...focusResults.map((r) => r?.takeHome ?? 0));
 
-  const addAllNoTax = useCallback(() => {
-    setSelectedSlugs((prev) => {
-      const toAdd = NO_TAX_SLUGS.filter((s) => !prev.includes(s));
-      return [...prev, ...toAdd];
-    });
-  }, []);
-
-  const amtLabel = cleanSalary ? `$${cleanSalary.toLocaleString("en-US")}` : "—";
-  const filingLabel = filing === "married" ? "Married filing jointly" : "Single filer";
+  const activeCfgs = states.map((s) => STATE_BY_SLUG.get(s));
 
   return (
-    <>
-      {/* ── Hero / Salary Input ──────────────────────────────────────────────── */}
-      <section
-        className="text-white py-10"
-        style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1d4ed8 100%)" }}
-      >
-        <div className="container-page">
-          {/* Breadcrumb */}
-          <nav className="text-blue-300 text-sm mb-5 flex items-center gap-2">
-            <Link href="/" className="hover:text-white transition-colors">
-              Home
-            </Link>
-            <span>/</span>
-            <span className="text-white">Compare States</span>
-          </nav>
-
-          <h1 className="text-3xl sm:text-4xl font-extrabold mb-2">
-            State Tax Comparison
-          </h1>
-          <p className="text-blue-200 mb-7 max-w-xl">
-            Enter any salary to instantly compare take-home pay across states.{" "}
-            {TAX_YEAR} federal &amp; state brackets.
-          </p>
-
-          {/* Input card */}
-          <div className="bg-white rounded-3xl shadow-2xl p-5 sm:p-7 text-gray-900 max-w-lg">
-            {/* Salary input */}
-            <label className="block mb-4">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
-                Annual Gross Salary
-              </span>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl font-bold pointer-events-none">
-                  $
-                </span>
-                <input
-                  inputMode="numeric"
-                  value={salary}
-                  onChange={(e) => setSalary(e.target.value)}
-                  placeholder="100,000"
-                  aria-label="Annual gross salary"
-                  className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-4 text-2xl font-extrabold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
-                />
-              </div>
-            </label>
-
-            {/* Filing status */}
-            <label className="block">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
-                Filing Status
-              </span>
-              <select
-                value={filing}
-                onChange={(e) => setFiling(e.target.value as "single" | "married")}
-                className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3.5 text-base font-semibold focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 bg-white transition-all"
-              >
-                <option value="single">Single</option>
-                <option value="married">Married Filing Jointly</option>
-              </select>
-            </label>
-          </div>
+    <div className="container-page pb-16">
+      {/* Header */}
+      <div className="mb-8 pt-6">
+        <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full mb-3 uppercase tracking-wider">
+          Interactive Tool · {TAX_YEAR} Brackets
         </div>
-      </section>
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2">
+          State Income Tax Comparison
+        </h1>
+        <p className="text-gray-500 text-base max-w-2xl">
+          Pick up to 3 states and see exactly how your take-home pay changes.
+          Perfect for relocation decisions.
+        </p>
+      </div>
 
-      {/* ── State Selector ───────────────────────────────────────────────────── */}
-      <section className="container-page mt-7">
-        {/* Selected state pills */}
-        <div className="mb-3">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-            States being compared ({selectedSlugs.length})
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {selectedSlugs.map((slug) => {
-              const cfg = STATE_BY_SLUG.get(slug);
-              if (!cfg) return null;
-              return (
+      {/* Controls */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-8 shadow-sm">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* State selectors */}
+          {Array.from({ length: numSlots }).map((_, i) => (
+            <div key={i}>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
                 <span
-                  key={slug}
-                  className={`inline-flex items-center gap-1 text-sm font-semibold px-3 py-1.5 rounded-full ${
-                    cfg.noTax
-                      ? "bg-green-100 text-green-800"
-                      : "bg-blue-100 text-blue-800"
-                  }`}
-                >
-                  {cfg.name}
-                  <button
-                    type="button"
-                    onClick={() => removeState(slug)}
-                    aria-label={`Remove ${cfg.name}`}
-                    className="ml-0.5 text-current opacity-50 hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded-full hover:bg-black/10"
-                  >
-                    ×
-                  </button>
-                </span>
-              );
-            })}
-            {selectedSlugs.length === 0 && (
-              <span className="text-sm text-gray-400 italic">No states selected</span>
-            )}
+                  className={`inline-block w-2 h-2 rounded-full mr-1.5 ${SLOT_DOT[i]}`}
+                />
+                State {i + 1}
+              </label>
+              <select
+                value={states[i] ?? ""}
+                onChange={(e) => setSlot(i, e.target.value)}
+                className={`w-full border-2 rounded-xl px-3 py-2.5 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all ${SLOT_BORDER[i]}`}
+              >
+                {STATE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}{o.noTax ? " ★" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+
+          {/* Filing status */}
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+              Filing Status
+            </label>
+            <select
+              value={filing}
+              onChange={(e) => setFiling(e.target.value as "single" | "married")}
+              className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+            >
+              {FILING_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
           </div>
         </div>
+        <p className="text-xs text-gray-400 mt-3">★ = no state income tax</p>
+      </div>
 
-        {/* Add state dropdown + utility buttons */}
-        <div className="flex flex-wrap gap-3 items-center">
-          <select
-            value={addSlug}
-            onChange={(e) => handleAddSlugChange(e.target.value)}
-            disabled={availableToAdd.length === 0}
-            aria-label="Add a state to compare"
-            className="border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-blue-500 bg-white transition-all min-w-0 flex-1 sm:flex-none sm:w-60 disabled:opacity-40"
-          >
-            <option value="">+ Add a state…</option>
-            <optgroup label="No State Income Tax">
-              {availableToAdd
-                .filter((s) => s.noTax)
-                .map((s) => (
-                  <option key={s.slug} value={s.slug}>
-                    {s.name} — $0 state tax
-                  </option>
-                ))}
-            </optgroup>
-            <optgroup label="Flat Rate States">
-              {availableToAdd
-                .filter((s) => !s.noTax && s.flat !== undefined)
-                .map((s) => (
-                  <option key={s.slug} value={s.slug}>
-                    {s.name} — {s.topRateDisplay} flat
-                  </option>
-                ))}
-            </optgroup>
-            <optgroup label="Progressive Tax States">
-              {availableToAdd
-                .filter((s) => !s.noTax && s.flat === undefined)
-                .map((s) => (
-                  <option key={s.slug} value={s.slug}>
-                    {s.name} — up to {s.topRateDisplay}
-                  </option>
-                ))}
-            </optgroup>
-          </select>
-
-          <button
-            type="button"
-            onClick={addAllNoTax}
-            className="text-xs text-green-700 font-semibold hover:text-green-900 border border-green-300 hover:border-green-500 bg-green-50 hover:bg-green-100 px-3 py-2.5 rounded-xl transition-colors whitespace-nowrap"
-          >
-            + All no-tax states
-          </button>
-
-          <button
-            type="button"
-            onClick={resetToDefaults}
-            className="text-xs text-gray-500 hover:text-gray-800 underline transition-colors py-2.5 px-1"
-          >
-            Reset defaults
-          </button>
-        </div>
-      </section>
-
-      {/* ── Results ──────────────────────────────────────────────────────────── */}
-      {cleanSalary > 0 && rows.length > 0 ? (
-        <section className="container-page mt-6 mb-14">
-          <p className="text-sm text-gray-500 mb-4">
-            Take-home pay for{" "}
-            <span className="font-bold text-gray-900">{amtLabel}/yr</span> across{" "}
-            {rows.length} state{rows.length !== 1 ? "s" : ""} ·{" "}
-            {TAX_YEAR} brackets
-          </p>
-
-          {/* ── Mobile: vertical cards ─────────────────────────────────────── */}
-          <div className="flex flex-col gap-3 sm:hidden">
-            {rows.map(({ slug, cfg, tax }, i) => (
-              <div
-                key={slug}
-                className={`bg-white rounded-2xl p-4 border ${
-                  i === 0 ? "border-green-300 shadow-md" : "border-gray-200"
+      {/* Bar Chart — focus salary selector + bars */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-8 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          <h2 className="font-extrabold text-gray-900 text-lg mr-2">Take-Home at Salary:</h2>
+          <div className="flex flex-wrap gap-2">
+            {COMPARE_SALARIES.map((sal) => (
+              <button
+                key={sal}
+                onClick={() => setFocusSalary(sal)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  sal === focusSalary
+                    ? "bg-blue-700 text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                {/* Card header */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs text-gray-400 font-bold tabular-nums">
-                        #{i + 1}
-                      </span>
-                      <span className="font-extrabold text-gray-900 text-base">
-                        {cfg.name}
-                      </span>
-                      {cfg.noTax ? (
-                        <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                          $0 state tax
-                        </span>
-                      ) : (
-                        <span className="text-xs font-semibold text-gray-500">
-                          up to {cfg.topRateDisplay}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <Link
-                    href={`/${slug}`}
-                    className="text-xs text-blue-600 font-semibold hover:text-blue-800 transition-colors ml-2 shrink-0"
-                  >
-                    View →
-                  </Link>
-                </div>
-
-                {/* Take-home bar */}
-                <div className="h-2 bg-gray-100 rounded-full mb-3 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      cfg.noTax ? "bg-green-400" : "bg-blue-400"
-                    }`}
-                    style={{ width: `${(tax.takeHome / maxTakeHome) * 100}%` }}
-                  />
-                </div>
-
-                {/* Key numbers grid */}
-                <div className="grid grid-cols-3 gap-2 text-center mb-3">
-                  <div className="bg-gray-50 rounded-xl py-2.5 px-1">
-                    <p className="text-xs text-gray-400 mb-0.5">Annual</p>
-                    <p
-                      className={`font-extrabold text-sm tabular-nums ${
-                        cfg.noTax ? "text-green-600" : "text-blue-700"
-                      }`}
-                    >
-                      {fmt(tax.takeHome)}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 rounded-xl py-2.5 px-1">
-                    <p className="text-xs text-gray-400 mb-0.5">Monthly</p>
-                    <p className="font-bold text-sm text-gray-900 tabular-nums">
-                      {fmt(tax.takeHome / 12)}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 rounded-xl py-2.5 px-1">
-                    <p className="text-xs text-gray-400 mb-0.5">Eff. Rate</p>
-                    <p className="font-bold text-sm text-gray-700 tabular-nums">
-                      {pct(tax.effectiveTotalRate)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Remove button */}
-                <button
-                  type="button"
-                  onClick={() => removeState(slug)}
-                  className="w-full text-xs text-gray-300 hover:text-red-400 transition-colors pt-2.5 pb-0.5 border-t border-gray-100"
-                >
-                  Remove from comparison
-                </button>
-              </div>
+                ${(sal / 1000).toFixed(0)}K
+              </button>
             ))}
           </div>
+        </div>
 
-          {/* ── Desktop: table ─────────────────────────────────────────────── */}
-          <div className="hidden sm:block overflow-x-auto rounded-2xl border border-gray-200 shadow-sm">
-            <table className="tax-table">
-              <thead>
-                <tr>
-                  <th className="w-8 text-center">#</th>
-                  <th>State</th>
-                  <th>State Tax</th>
-                  <th>Take-Home / Year</th>
-                  <th>Monthly</th>
-                  <th>Bi-Weekly</th>
-                  <th>Eff. Rate</th>
-                  <th>State Tax $</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(({ slug, cfg, tax }, i) => (
-                  <tr key={slug} className={i === 0 ? "row-highlight" : ""}>
-                    {/* Rank */}
-                    <td className="text-center text-gray-400 text-xs font-bold">
-                      {i + 1}
-                    </td>
-
-                    {/* State name + mini bar */}
-                    <td>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-gray-900">{cfg.name}</span>
-                          {cfg.noTax && (
-                            <span className="text-xs font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
-                              $0
-                            </span>
-                          )}
-                        </div>
-                        <div className="h-1.5 w-24 bg-gray-100 rounded-full mt-1.5 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${
-                              cfg.noTax ? "bg-green-400" : "bg-blue-400"
-                            }`}
-                            style={{
-                              width: `${(tax.takeHome / maxTakeHome) * 100}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* State tax rate label */}
-                    <td>
-                      <span
-                        className={`font-semibold ${
-                          cfg.noTax ? "text-green-700" : "text-purple-700"
-                        }`}
-                      >
-                        {cfg.noTax ? "None" : `up to ${cfg.topRateDisplay}`}
+        <div className="space-y-5">
+          {focusResults.map((res, i) => {
+            const cfg = activeCfgs[i];
+            if (!cfg || !res) return null;
+            const barPct = maxTakeHome > 0 ? (res.takeHome / maxTakeHome) * 100 : 0;
+            return (
+              <div key={i}>
+                <div className="flex justify-between items-end mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-3 h-3 rounded-full ${SLOT_DOT[i]} flex-shrink-0`} />
+                    <span className="font-semibold text-gray-800">{cfg.name}</span>
+                    {cfg.noTax && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">No state tax</span>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <span className="font-black text-gray-900 text-lg tabular-nums">{fmt(res.takeHome)}/yr</span>
+                    <span className="text-gray-400 text-xs ml-2">{fmt(res.takeHome / 12)}/mo</span>
+                  </div>
+                </div>
+                <div className="h-8 bg-gray-100 rounded-lg overflow-hidden">
+                  <div
+                    className="h-full rounded-lg transition-all duration-500 flex items-center justify-end pr-2"
+                    style={{ width: `${barPct}%`, backgroundColor: SLOT_COLORS[i] }}
+                  >
+                    {barPct > 25 && (
+                      <span className="text-white text-xs font-bold">
+                        {pct(res.takeHome / focusSalary)} kept
                       </span>
-                    </td>
+                    )}
+                  </div>
+                </div>
+                <div className="compare-detail-row flex gap-4 text-xs text-gray-500 mt-1">
+                  <span>Fed: <strong className="text-gray-700">{fmt(res.federalTax)}</strong></span>
+                  <span>FICA: <strong className="text-gray-700">{fmt(res.ficaTotal)}</strong></span>
+                  {!cfg.noTax && (
+                    <span>State: <strong className="text-gray-700">{fmt(res.stateTax)}</strong></span>
+                  )}
+                  <span>Effective: <strong className="text-gray-700">{pct(res.effectiveTotalRate)}</strong></span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
-                    {/* Take-home year */}
-                    <td>
-                      <span
-                        className={`font-black tabular-nums ${
-                          cfg.noTax ? "text-green-700" : "text-blue-700"
-                        }`}
-                      >
-                        {fmt(tax.takeHome)}
-                      </span>
-                    </td>
-
-                    {/* Monthly */}
-                    <td className="font-semibold text-gray-700 tabular-nums">
-                      {fmt(tax.takeHome / 12)}
-                    </td>
-
-                    {/* Bi-weekly */}
-                    <td className="font-semibold text-gray-600 tabular-nums">
-                      {fmt(tax.takeHome / 26)}
-                    </td>
-
-                    {/* Effective rate */}
-                    <td className="text-gray-600 tabular-nums">
-                      {pct(tax.effectiveTotalRate)}
-                    </td>
-
-                    {/* State tax $ */}
-                    <td className="text-gray-500 tabular-nums">
-                      {cfg.noTax ? "$0" : fmt(tax.stateTax)}
-                    </td>
-
-                    {/* Actions */}
-                    <td>
-                      <div className="flex items-center justify-end gap-3">
-                        <Link
-                          href={`/${slug}`}
-                          className="text-blue-600 hover:text-blue-800 text-xs font-medium whitespace-nowrap transition-colors"
-                        >
-                          Details →
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => removeState(slug)}
-                          aria-label={`Remove ${cfg.name}`}
-                          className="text-gray-300 hover:text-red-400 transition-colors text-sm leading-none w-5 h-5 flex items-center justify-center"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Footer note */}
-          <p className="text-xs text-gray-400 mt-4 text-center">
-            * {filingLabel}, standard deduction, no 401(k) contribution.{" "}
-            {TAX_YEAR} IRS federal + state brackets.
-          </p>
-        </section>
-      ) : cleanSalary === 0 ? (
-        <section className="container-page my-14 text-center">
-          <div className="bg-gray-50 rounded-2xl p-10 text-gray-400">
-            <p className="text-lg font-semibold mb-2">Enter a salary above</p>
-            <p className="text-sm">Type any amount to see the state comparison instantly.</p>
-          </div>
-        </section>
-      ) : (
-        <section className="container-page my-14 text-center">
-          <div className="bg-gray-50 rounded-2xl p-10 text-gray-400">
-            <p className="text-lg font-semibold mb-2">No states selected</p>
-            <p className="text-sm">
-              Use the dropdown above to add states to compare.{" "}
-              <button
-                type="button"
-                onClick={resetToDefaults}
-                className="text-blue-600 underline hover:no-underline"
-              >
-                Reset to defaults
-              </button>
+        {/* Savings callout between state 0 and others */}
+        {focusResults[0] && focusResults[1] && (
+          <div className="mt-6 pt-5 border-t border-gray-100">
+            <p className="text-sm text-gray-500">
+              At ${focusSalary.toLocaleString()} salary:{" "}
+              {focusResults.map((res, i) => {
+                if (i === 0 || !res || !focusResults[0]) return null;
+                const diff = focusResults[0].takeHome - res.takeHome;
+                const diffAbs = Math.abs(Math.round(diff));
+                const moreLess = diff > 0 ? "more" : "less";
+                const stateName0 = activeCfgs[0]?.name ?? "";
+                const stateNameI = activeCfgs[i]?.name ?? "";
+                return (
+                  <span key={i} className="mr-4">
+                    <strong className={diff > 0 ? "text-green-700" : "text-red-700"}>
+                      {diff > 0 ? "+" : "−"}${diffAbs.toLocaleString()}/yr
+                    </strong>{" "}
+                    {stateName0} {moreLess} than {stateNameI}.{" "}
+                  </span>
+                );
+              })}
             </p>
           </div>
-        </section>
-      )}
-    </>
+        )}
+      </div>
+
+      {/* Full Comparison Table */}
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm mb-8">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h2 className="font-extrabold text-gray-900">Full Take-Home Comparison — All Salary Levels</h2>
+          <p className="text-sm text-gray-500 mt-0.5">{TAX_YEAR} · {filing === "married" ? "Married filing jointly" : "Single filer"} · Standard deduction</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="text-left px-5 py-3 font-bold text-gray-600 text-xs uppercase tracking-wide">
+                  Gross Salary
+                </th>
+                {activeCfgs.map((cfg, i) => cfg && (
+                  <th key={i} className="text-right px-5 py-3 font-bold text-xs uppercase tracking-wide">
+                    <span className={`flex items-center justify-end gap-1.5 ${SLOT_LABEL[i]}`}>
+                      <span className={`w-2 h-2 rounded-full ${SLOT_DOT[i]}`} />
+                      {cfg.name}
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARE_SALARIES.map((sal, rowIdx) => (
+                <tr
+                  key={sal}
+                  className={`border-b border-gray-100 ${sal === focusSalary ? "bg-blue-50" : rowIdx % 2 === 0 ? "" : "bg-gray-50/50"}`}
+                  onClick={() => setFocusSalary(sal)}
+                  style={{ cursor: "pointer" }}
+                >
+                  <td className="px-5 py-3 font-semibold text-gray-900">
+                    ${sal.toLocaleString()}
+                    {sal === focusSalary && (
+                      <span className="ml-2 text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">Selected</span>
+                    )}
+                  </td>
+                  {results.map((stateResults, i) => {
+                    const res = stateResults?.[rowIdx];
+                    const cfg = activeCfgs[i];
+                    if (!cfg || !res) return <td key={i} />;
+                    return (
+                      <td key={i} className="px-5 py-3 text-right">
+                        <p className={`font-bold tabular-nums ${SLOT_LABEL[i]}`}>{fmt(res.takeHome)}</p>
+                        <p className="text-xs text-gray-400">{pct(res.effectiveTotalRate)} eff.</p>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Detailed Breakdown for Focus Salary */}
+      <div className="mb-8">
+        <h2 className="text-xl font-extrabold text-gray-900 mb-4">
+          Detailed Breakdown at ${focusSalary.toLocaleString()}
+        </h2>
+        <div className="grid sm:grid-cols-3 gap-4">
+          {focusResults.map((res, i) => {
+            const cfg = activeCfgs[i];
+            if (!cfg || !res) return null;
+            return (
+              <div key={i} className={`rounded-2xl border-2 p-5 ${SLOT_BORDER[i]} ${SLOT_BG[i]}`}>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className={`w-3 h-3 rounded-full ${SLOT_DOT[i]}`} />
+                  <h3 className={`font-extrabold text-base ${SLOT_LABEL[i]}`}>{cfg.name}</h3>
+                </div>
+                <div className="space-y-2 text-sm">
+                  {[
+                    { label: "Gross Salary",       val: fmt(res.gross),       bold: false },
+                    { label: "Federal Income Tax",  val: `−${fmt(res.federalTax)}`,  red: true },
+                    { label: "Social Security",     val: `−${fmt(res.socialSecurity)}`, red: true },
+                    { label: "Medicare",            val: `−${fmt(res.medicare)}`, red: true },
+                    { label: `${cfg.name} State Tax`, val: cfg.noTax ? "$0" : `−${fmt(res.stateTax)}`, green: cfg.noTax, red: !cfg.noTax },
+                    { label: "Total Tax",           val: `−${fmt(res.totalTax)}`, bold: true, red: true },
+                    { label: "Take-Home Pay",       val: fmt(res.takeHome), bold: true, green: true },
+                  ].map(({ label, val, bold, red, green }) => (
+                    <div key={label} className="flex justify-between border-b border-gray-200/60 pb-1.5 last:border-0">
+                      <span className={`text-gray-600 ${bold ? "font-bold" : ""}`}>{label}</span>
+                      <span className={`tabular-nums ${bold ? "font-bold" : "font-medium"} ${green ? "text-green-700" : red ? "text-red-600" : "text-gray-800"}`}>
+                        {val}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 pt-3 border-t border-gray-200/60 space-y-1 text-xs text-gray-500">
+                  <div className="flex justify-between">
+                    <span>Effective Rate</span>
+                    <span className="font-semibold text-gray-700">{pct(res.effectiveTotalRate)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Marginal Rate</span>
+                    <span className="font-semibold text-gray-700">{pct(res.marginalRate)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Monthly Take-Home</span>
+                    <span className="font-semibold text-gray-700">{fmt(res.takeHome / 12)}</span>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <Link
+                    href={`/salary/${focusSalary}-salary-after-tax-${cfg.slug}`}
+                    className={`block text-center text-xs font-bold py-2 rounded-xl transition-colors text-white`}
+                    style={{ backgroundColor: SLOT_COLORS[i] }}
+                  >
+                    Full {cfg.name} Breakdown →
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* FAQ */}
+      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-8">
+        <h2 className="text-xl font-extrabold text-gray-900 mb-5">Frequently Asked Questions</h2>
+        <div className="space-y-4">
+          {[
+            {
+              q: "Which US state has the lowest income tax?",
+              a: "Nine states have no state income tax at all: Alaska, Florida, Nevada, New Hampshire, South Dakota, Tennessee, Texas, Washington, and Wyoming. Of states with income tax, North Dakota (2.5% flat) and Arizona (2.5% flat) have among the lowest rates.",
+            },
+            {
+              q: "How much more do you keep in Texas vs California?",
+              a: `On a $100,000 salary, Texas residents keep approximately $7,420 more per year than California residents. On $200,000, the gap widens to roughly $18,000+. The exact difference depends on your specific income and deductions.`,
+            },
+            {
+              q: "Is it worth relocating to a no-tax state?",
+              a: "The tax savings can be substantial — $5,000–$20,000+ per year for high earners. However, factor in cost of living differences (housing is typically higher in no-tax states like Texas), and any other state-specific taxes (e.g., Washington has no income tax but has high sales and property taxes).",
+            },
+            {
+              q: "Does this comparison include all taxes?",
+              a: "The comparison includes federal income tax, FICA (Social Security and Medicare), and state income tax. It does not include sales tax, property tax, estate tax, or local/city income taxes, which vary widely.",
+            },
+          ].map(({ q, a }) => (
+            <div key={q} className="border border-gray-200 rounded-xl p-4 bg-white">
+              <h3 className="font-semibold text-gray-900 mb-1.5 text-sm">{q}</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">{a}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div className="text-center">
+        <Link
+          href="/"
+          className="inline-block bg-blue-700 text-white font-bold px-8 py-3.5 rounded-xl hover:bg-blue-800 transition-colors mr-3"
+        >
+          Use Full Calculator →
+        </Link>
+        <Link
+          href="/states"
+          className="inline-block border border-gray-300 text-gray-700 font-semibold px-8 py-3.5 rounded-xl hover:bg-gray-50 transition-colors"
+        >
+          All 50 States →
+        </Link>
+      </div>
+    </div>
   );
 }

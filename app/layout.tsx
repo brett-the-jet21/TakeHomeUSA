@@ -3,6 +3,7 @@ import Script from "next/script";
 import Link from "next/link";
 import "./globals.css";
 import { TAX_YEAR } from "@/lib/tax";
+import MobileNav from "./components/MobileNav";
 
 export const metadata: Metadata = {
   title: {
@@ -165,12 +166,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               </div>
 
-              {/* Mobile: just the link */}
               <Link
-                href="/states"
-                className="px-3 py-1.5 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors sm:hidden"
+                href="/compare"
+                className="px-3 py-1.5 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors hidden sm:block"
               >
-                States
+                Compare
               </Link>
 
               <Link
@@ -186,6 +186,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               >
                 Calculator
               </Link>
+
+              {/* Mobile hamburger — renders its own sm:hidden dropdown */}
+              <MobileNav />
             </nav>
           </div>
         </header>
