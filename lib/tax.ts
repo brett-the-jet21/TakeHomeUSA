@@ -31,6 +31,10 @@ export interface CalcOptions {
   /** Annual HSA payroll contribution — reduces federal, FICA, and state taxable income */
   hsa?: number;
   cityConfig?: CityTaxConfig;
+  /** Itemized deduction: annual mortgage interest paid */
+  mortgageInterest?: number;
+  /** Itemized deduction: annual charitable contributions */
+  charitable?: number;
 }
 
 export interface TaxResult {
@@ -52,6 +56,10 @@ export interface TaxResult {
   healthInsurancePremium: number;
   hsaContribution: number;
   cityTax: number;
+  /** True when itemized deductions exceeded the standard deduction */
+  isItemized: boolean;
+  /** Actual deduction applied — standard or itemized total, whichever is greater */
+  deductionApplied: number;
 }
 
 // ─── Federal Tax Calculator ───────────────────────────────────────────────────
@@ -74,8 +82,13 @@ import type { CityTaxConfig } from "./cities";
 import { calcCityTax } from "./cities";
 
 export function calculateTax(stateConfig: StateTaxConfig, gross: number, options: CalcOptions = {}): TaxResult {
-  const { filingStatus = "single", contribution401k = 0, healthInsurance = 0, hsa = 0, cityConfig } = options;
+  const { filingStatus = "single", contribution401k = 0, healthInsurance = 0, hsa = 0, cityConfig, mortgageInterest = 0, charitable = 0 } = options;
   const stdDeduction = filingStatus === "married" ? STANDARD_DEDUCTION_MARRIED : STANDARD_DEDUCTION_SINGLE;
+
+  // Itemized deductions: use the greater of standard or itemized total
+  const itemizedTotal = Math.max(0, mortgageInterest) + Math.max(0, charitable);
+  const isItemized = itemizedTotal > stdDeduction;
+  const deductionApplied = isItemized ? itemizedTotal : stdDeduction;
 
   // 401k reduces federal + state taxable income but NOT FICA wages
   const preTax401k = Math.max(0, Math.min(contribution401k, gross));
@@ -92,7 +105,7 @@ export function calculateTax(stateConfig: StateTaxConfig, gross: number, options
 
   // Federal + state taxable income is reduced by all pre-tax deductions
   const allPreTax = preTax401k + healthInsPreTax + hsaPreTax;
-  const federalTaxable = Math.max(0, gross - stdDeduction - allPreTax);
+  const federalTaxable = Math.max(0, gross - deductionApplied - allPreTax);
   const { tax: federalTax, marginalRate } = calcFederal(federalTaxable);
 
   const adjustedGross = Math.max(0, gross - allPreTax);
@@ -109,7 +122,7 @@ export function calculateTax(stateConfig: StateTaxConfig, gross: number, options
 
   return {
     gross,
-    standardDeduction: stdDeduction,
+    standardDeduction: deductionApplied,
     federalTaxable,
     federalTax,
     socialSecurity,
@@ -126,6 +139,8 @@ export function calculateTax(stateConfig: StateTaxConfig, gross: number, options
     healthInsurancePremium: healthInsPreTax,
     hsaContribution: hsaPreTax,
     cityTax,
+    isItemized,
+    deductionApplied,
   };
 }
 
@@ -163,6 +178,8 @@ export function calculateTexasTax(gross: number): TaxResult {
     healthInsurancePremium: 0,
     hsaContribution: 0,
     cityTax: 0,
+    isItemized: false,
+    deductionApplied: STANDARD_DEDUCTION_SINGLE,
   };
 }
 
