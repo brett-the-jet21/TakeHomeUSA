@@ -5,6 +5,12 @@ import Link from "next/link";
 import { ALL_STATE_CONFIGS, STATE_BY_SLUG } from "@/lib/states";
 import { calculateTax, fmt, pct, TAX_YEAR } from "@/lib/tax";
 
+function fmtInput(val: string): string {
+  const digits = val.replace(/[^\d]/g, "");
+  if (!digits) return "";
+  return Number(digits).toLocaleString("en-US");
+}
+
 const COMPARE_SALARIES = [50_000, 75_000, 100_000, 125_000, 150_000, 200_000];
 
 const STATE_OPTIONS = ALL_STATE_CONFIGS.map((s) => ({
@@ -30,13 +36,13 @@ export default function CompareClient() {
   const [filing, setFiling] = useState<"single" | "married">("single");
 
   // Salary: free-text input + debounced numeric value
-  const [salaryInput, setSalaryInput] = useState("100000");
+  const [salaryInput, setSalaryInput] = useState("100,000");
   const [focusSalary, setFocusSalary] = useState(100_000);
 
   // Debounce: update focusSalary 300ms after the user stops typing
   useEffect(() => {
     const n = Number(salaryInput.replace(/[^\d]/g, ""));
-    if (n >= 1_000 && n <= 100_000_000) {
+    if (n >= 1_000 && n <= 999_999_999_999) {
       const t = setTimeout(() => setFocusSalary(n), 300);
       return () => clearTimeout(t);
     }
@@ -157,7 +163,7 @@ export default function CompareClient() {
               <input
                 inputMode="numeric"
                 value={salaryInput}
-                onChange={(e) => setSalaryInput(e.target.value)}
+                onChange={(e) => setSalaryInput(fmtInput(e.target.value))}
                 placeholder="100,000"
                 aria-label="Annual salary for comparison"
                 className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-4 text-2xl font-extrabold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
@@ -172,7 +178,7 @@ export default function CompareClient() {
                 key={sal}
                 type="button"
                 onClick={() => {
-                  setSalaryInput(String(sal));
+                  setSalaryInput(fmtInput(String(sal)));
                   setFocusSalary(sal);
                 }}
                 className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
@@ -287,7 +293,7 @@ export default function CompareClient() {
                 <tr
                   key={sal}
                   className={`border-b border-gray-100 ${sal === focusSalary ? "bg-blue-50" : rowIdx % 2 === 0 ? "" : "bg-gray-50/50"}`}
-                  onClick={() => { setFocusSalary(sal); setSalaryInput(String(sal)); }}
+                  onClick={() => { setFocusSalary(sal); setSalaryInput(fmtInput(String(sal))); }}
                   style={{ cursor: "pointer" }}
                 >
                   <td className="px-5 py-3 font-semibold text-gray-900">

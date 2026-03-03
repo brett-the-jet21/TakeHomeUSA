@@ -67,9 +67,15 @@ const TIMEZONE_TO_STATE: Record<string, string> = {
   "Pacific/Honolulu":               "hawaii",
 };
 
+function fmtInput(val: string): string {
+  const digits = val.replace(/[^\d]/g, "");
+  if (!digits) return "";
+  return Number(digits).toLocaleString("en-US");
+}
+
 export default function HomePageClient() {
   const router = useRouter();
-  const [salary, setSalary] = useState("100000");
+  const [salary, setSalary] = useState("100,000");
   const [stateSlug, setStateSlug] = useState("texas");
   const [filing, setFiling] = useState<"single" | "married">("single");
   const [contribution401k, setContribution401k] = useState("");
@@ -89,24 +95,24 @@ export default function HomePageClient() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const s = params.get("salary");
-    if (s && /^\d+$/.test(s)) setSalary(s);
+    if (s && /^\d+$/.test(s)) setSalary(fmtInput(s));
     const st = params.get("state");
     if (st && STATE_BY_SLUG.has(st)) setStateSlug(st);
     const f = params.get("filing");
     if (f === "married") setFiling("married");
     const k = params.get("401k");
-    if (k && /^\d+$/.test(k) && Number(k) > 0) setContribution401k(k);
+    if (k && /^\d+$/.test(k) && Number(k) > 0) setContribution401k(fmtInput(k));
     const hi = params.get("health");
-    if (hi && /^\d+$/.test(hi) && Number(hi) > 0) setHealthInsurance(hi);
+    if (hi && /^\d+$/.test(hi) && Number(hi) > 0) setHealthInsurance(fmtInput(hi));
     const hsaParam = params.get("hsa");
-    if (hsaParam && /^\d+$/.test(hsaParam) && Number(hsaParam) > 0) setHsa(hsaParam);
+    if (hsaParam && /^\d+$/.test(hsaParam) && Number(hsaParam) > 0) setHsa(fmtInput(hsaParam));
     const c = params.get("city");
     if (c && CITY_BY_SLUG.has(c)) setCitySlug(c);
     if (params.get("itemized") === "1") setUseItemized(true);
     const mi = params.get("mortgage");
-    if (mi && /^\d+$/.test(mi) && Number(mi) > 0) setMortgageInterest(mi);
+    if (mi && /^\d+$/.test(mi) && Number(mi) > 0) setMortgageInterest(fmtInput(mi));
     const ch = params.get("charity");
-    if (ch && /^\d+$/.test(ch) && Number(ch) > 0) setCharitable(ch);
+    if (ch && /^\d+$/.test(ch) && Number(ch) > 0) setCharitable(fmtInput(ch));
     const m = params.get("mode");
     if (m === "hourly") setInputMode("hourly");
     const r = params.get("rate");
@@ -348,7 +354,7 @@ export default function HomePageClient() {
                         <input
                           inputMode="numeric"
                           value={salary}
-                          onChange={(e) => setSalary(e.target.value)}
+                          onChange={(e) => setSalary(fmtInput(e.target.value))}
                           onKeyDown={(e) => e.key === "Enter" && handleCalculate()}
                           placeholder="100,000"
                           className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-4 text-2xl font-extrabold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
@@ -472,7 +478,7 @@ export default function HomePageClient() {
                       <input
                         inputMode="numeric"
                         value={contribution401k}
-                        onChange={(e) => setContribution401k(e.target.value)}
+                        onChange={(e) => setContribution401k(fmtInput(e.target.value))}
                         placeholder="0"
                         className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-3.5 text-base font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
                       />
@@ -489,7 +495,7 @@ export default function HomePageClient() {
                       <input
                         inputMode="numeric"
                         value={healthInsurance}
-                        onChange={(e) => setHealthInsurance(e.target.value)}
+                        onChange={(e) => setHealthInsurance(fmtInput(e.target.value))}
                         placeholder="0"
                         className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-3.5 text-base font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
                       />
@@ -506,7 +512,7 @@ export default function HomePageClient() {
                       <input
                         inputMode="numeric"
                         value={hsa}
-                        onChange={(e) => setHsa(e.target.value)}
+                        onChange={(e) => setHsa(fmtInput(e.target.value))}
                         placeholder="0"
                         className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-3.5 text-base font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
                       />
@@ -536,7 +542,7 @@ export default function HomePageClient() {
                             <input
                               inputMode="numeric"
                               value={mortgageInterest}
-                              onChange={(e) => setMortgageInterest(e.target.value)}
+                              onChange={(e) => setMortgageInterest(fmtInput(e.target.value))}
                               placeholder="0"
                               className="w-full border-2 border-blue-200 rounded-xl pl-7 pr-3 py-2.5 text-sm font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                             />
@@ -551,7 +557,7 @@ export default function HomePageClient() {
                             <input
                               inputMode="numeric"
                               value={charitable}
-                              onChange={(e) => setCharitable(e.target.value)}
+                              onChange={(e) => setCharitable(fmtInput(e.target.value))}
                               placeholder="0"
                               className="w-full border-2 border-blue-200 rounded-xl pl-7 pr-3 py-2.5 text-sm font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                             />
