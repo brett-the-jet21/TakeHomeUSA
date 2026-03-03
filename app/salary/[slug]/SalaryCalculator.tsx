@@ -25,7 +25,7 @@ interface Props {
 
 export default function SalaryCalculator({ initialAmount, stateConfig }: Props) {
   const router = useRouter();
-  const [salaryInput, setSalaryInput] = useState(initialAmount.toString());
+  const [salaryInput, setSalaryInput] = useState(initialAmount.toLocaleString("en-US"));
   const [showHowWeCalc, setShowHowWeCalc] = useState(false);
   const [filing, setFiling] = useState<"single" | "married">("single");
   const [contribution401k, setContribution401k] = useState("");
@@ -53,18 +53,18 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
     const f = params.get("filing");
     if (f === "married") setFiling("married");
     const k = params.get("401k");
-    if (k && /^\d+$/.test(k) && Number(k) > 0) setContribution401k(k);
+    if (k && /^\d+$/.test(k) && Number(k) > 0) setContribution401k(Number(k).toLocaleString("en-US"));
     const hi = params.get("health");
-    if (hi && /^\d+$/.test(hi) && Number(hi) > 0) setHealthInsurance(hi);
+    if (hi && /^\d+$/.test(hi) && Number(hi) > 0) setHealthInsurance(Number(hi).toLocaleString("en-US"));
     const hsaParam = params.get("hsa");
-    if (hsaParam && /^\d+$/.test(hsaParam) && Number(hsaParam) > 0) setHsa(hsaParam);
+    if (hsaParam && /^\d+$/.test(hsaParam) && Number(hsaParam) > 0) setHsa(Number(hsaParam).toLocaleString("en-US"));
     const c = params.get("city");
     if (c && CITY_BY_SLUG.has(c)) setCitySlug(c);
     if (params.get("itemized") === "1") setUseItemized(true);
     const mi = params.get("mortgage");
-    if (mi && /^\d+$/.test(mi) && Number(mi) > 0) setMortgageInterest(mi);
+    if (mi && /^\d+$/.test(mi) && Number(mi) > 0) setMortgageInterest(Number(mi).toLocaleString("en-US"));
     const ch = params.get("charity");
-    if (ch && /^\d+$/.test(ch) && Number(ch) > 0) setCharitable(ch);
+    if (ch && /^\d+$/.test(ch) && Number(ch) > 0) setCharitable(Number(ch).toLocaleString("en-US"));
     setInitialized(true);
   }, []);
 
@@ -112,7 +112,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
       return annual >= 1_000 ? annual : initialAmount;
     }
     const n = Number(salaryInput.replace(/[^0-9]/g, ""));
-    return n >= 1_000 && n <= 100_000_000_000_000 ? n : initialAmount;
+    return n >= 1_000 ? n : initialAmount;
   }, [inputMode, salaryInput, hourlyRate, hoursPerWeek, initialAmount]);
 
   const annualHours = useMemo(() => {
@@ -161,14 +161,15 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
   );
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSalaryInput(e.target.value);
+    const raw = e.target.value.replace(/[^\d]/g, "");
+    setSalaryInput(raw ? Number(raw).toLocaleString("en-US") : "");
   }, []);
 
   const handleNavigate = useCallback(() => {
     const n = inputMode === "hourly"
       ? Math.round((parseFloat(hourlyRate) || 0) * (parseInt(hoursPerWeek) || 40) * 52)
       : Number(salaryInput.replace(/[^0-9]/g, ""));
-    if (n >= 1_000 && n <= 100_000_000_000_000) {
+    if (n >= 1_000) {
       const params = new URLSearchParams();
       if (inputMode === "hourly") {
         params.set("mode", "hourly");
@@ -391,7 +392,10 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                 type="text"
                 inputMode="numeric"
                 value={contribution401k}
-                onChange={(e) => setContribution401k(e.target.value)}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^\d]/g, "");
+                  setContribution401k(raw ? Number(raw).toLocaleString("en-US") : "");
+                }}
                 placeholder="0"
                 className="w-full pl-7 pr-3 py-2 border border-blue-200 rounded-xl text-sm font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
               />
@@ -405,7 +409,10 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                 type="text"
                 inputMode="numeric"
                 value={healthInsurance}
-                onChange={(e) => setHealthInsurance(e.target.value)}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^\d]/g, "");
+                  setHealthInsurance(raw ? Number(raw).toLocaleString("en-US") : "");
+                }}
                 placeholder="0"
                 className="w-full pl-7 pr-3 py-2 border border-blue-200 rounded-xl text-sm font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
               />
@@ -419,7 +426,10 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                 type="text"
                 inputMode="numeric"
                 value={hsa}
-                onChange={(e) => setHsa(e.target.value)}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^\d]/g, "");
+                  setHsa(raw ? Number(raw).toLocaleString("en-US") : "");
+                }}
                 placeholder="0"
                 className="w-full pl-7 pr-3 py-2 border border-blue-200 rounded-xl text-sm font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
               />
@@ -447,7 +457,10 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                       type="text"
                       inputMode="numeric"
                       value={mortgageInterest}
-                      onChange={(e) => setMortgageInterest(e.target.value)}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^\d]/g, "");
+                        setMortgageInterest(raw ? Number(raw).toLocaleString("en-US") : "");
+                      }}
                       placeholder="0"
                       className="w-full pl-7 pr-3 py-2 border border-blue-200 rounded-xl text-sm font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
                     />
@@ -461,7 +474,10 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                       type="text"
                       inputMode="numeric"
                       value={charitable}
-                      onChange={(e) => setCharitable(e.target.value)}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^\d]/g, "");
+                        setCharitable(raw ? Number(raw).toLocaleString("en-US") : "");
+                      }}
                       placeholder="0"
                       className="w-full pl-7 pr-3 py-2 border border-blue-200 rounded-xl text-sm font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
                     />
