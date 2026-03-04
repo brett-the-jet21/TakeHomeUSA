@@ -118,7 +118,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <nav className="flex items-center gap-1 text-sm font-medium">
 
               {/* States dropdown — CSS hover only (server component safe) */}
-              <div className="relative group hidden sm:block">
+              <div className="relative group hidden md:block">
                 <Link
                   href="/states"
                   className="flex items-center gap-1 px-3 py-1.5 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
@@ -173,21 +173,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
               <Link
                 href="/compare"
-                className="px-3 py-1.5 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors hidden sm:block"
+                className="px-3 py-1.5 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors hidden md:block"
               >
                 Compare
               </Link>
 
               <Link
                 href="/about"
-                className="px-3 py-1.5 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors hidden sm:block"
+                className="px-3 py-1.5 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors hidden md:block"
               >
                 About
               </Link>
 
               <Link
                 href="/"
-                className="ml-2 bg-blue-700 text-white px-4 py-1.5 rounded-full text-sm font-bold hover:bg-blue-800 transition-colors hidden sm:inline-block"
+                className="ml-2 bg-blue-700 text-white px-4 py-1.5 rounded-full text-sm font-bold hover:bg-blue-800 transition-colors hidden md:inline-block"
               >
                 Calculator
               </Link>

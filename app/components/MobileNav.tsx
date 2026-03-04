@@ -29,7 +29,7 @@ export default function MobileNav() {
   const close = useCallback(() => setOpen(false), []);
 
   return (
-    <div className="sm:hidden">
+    <div className="md:hidden">
       {/* Hamburger / close button */}
       <button
         type="button"
