@@ -25,6 +25,18 @@ const FILING_OPTIONS: { value: "single" | "married"; label: string }[] = [
   { value: "married", label: "Married Filing Jointly" },
 ];
 
+// Snap a salary to the nearest pre-generated page amount (mirrors getStateSalaryAmounts)
+function snapSalaryForLink(sal: number, stateSlug: string): number {
+  if (sal <= 500_000) {
+    const step = stateSlug === "texas" ? 1_000 : 5_000;
+    return Math.max(20_000, Math.round(sal / step) * step);
+  }
+  if (sal <= 2_000_000) {
+    return Math.round(sal / 50_000) * 50_000;
+  }
+  return 2_000_000;
+}
+
 export default function CompareClient() {
   const [states, setStates] = useState<string[]>(["texas", "california", "new-york"]);
   const [filing, setFiling] = useState<"single" | "married">("single");
@@ -362,7 +374,7 @@ export default function CompareClient() {
                 </div>
                 <div className="mt-4">
                   <Link
-                    href={`/salary/${debouncedSalary}-salary-after-tax-${cfg.slug}`}
+                    href={`/salary/${snapSalaryForLink(debouncedSalary, cfg.slug)}-salary-after-tax-${cfg.slug}`}
                     className={`block text-center text-xs font-bold py-2 rounded-xl transition-colors text-white`}
                     style={{ backgroundColor: SLOT_COLORS[i] }}
                   >
