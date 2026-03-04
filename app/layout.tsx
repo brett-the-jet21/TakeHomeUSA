@@ -187,7 +187,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
               <Link
                 href="/"
-                className="ml-2 bg-blue-700 text-white px-4 py-1.5 rounded-full text-sm font-bold hover:bg-blue-800 transition-colors"
+                className="ml-2 bg-blue-700 text-white px-4 py-1.5 rounded-full text-sm font-bold hover:bg-blue-800 transition-colors hidden sm:inline-block"
               >
                 Calculator
               </Link>
