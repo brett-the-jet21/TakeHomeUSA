@@ -3,19 +3,12 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { calculateTax, fmt, pct, TAX_YEAR, FEDERAL_BRACKETS_2026 } from "@/lib/tax";
+import { calculateTax, fmt, pct, TAX_YEAR, FILING_STATUS_LABELS, FEDERAL_BRACKETS_BY_STATUS } from "@/lib/tax";
+import type { FilingStatus } from "@/lib/tax";
 import type { StateTaxConfig } from "@/lib/states";
 import { CITIES_BY_STATE, CITY_BY_SLUG } from "@/lib/cities";
+import { COST_OF_LIVING, COL_TIER_LABEL, COL_TIER_COLOR } from "@/lib/costOfLiving";
 
-const BRACKET_LABELS = [
-  "$0 – $12,400",
-  "$12,401 – $50,400",
-  "$50,401 – $105,700",
-  "$105,701 – $201,775",
-  "$201,776 – $256,225",
-  "$256,226 – $640,600",
-  "Over $640,600",
-];
 
 interface Props {
   initialAmount: number;
@@ -24,10 +17,15 @@ interface Props {
 
 export default function SalaryCalculator({ initialAmount, stateConfig }: Props) {
   const router = useRouter();
-  const [salaryInput, setSalaryInput] = useState(initialAmount.toString());
+  const [salaryInput, setSalaryInput] = useState(initialAmount.toLocaleString("en-US"));
   const [showHowWeCalc, setShowHowWeCalc] = useState(false);
-  const [filing, setFiling] = useState<"single" | "married">("single");
+  const [filing, setFiling] = useState<FilingStatus>("single");
   const [contribution401k, setContribution401k] = useState("");
+  const [healthInsurance, setHealthInsurance] = useState("");
+  const [hsa, setHsa] = useState("");
+  const [useItemized, setUseItemized] = useState(false);
+  const [mortgageInterest, setMortgageInterest] = useState("");
+  const [charitable, setCharitable] = useState("");
   const [citySlug, setCitySlug] = useState("");
   const [inputMode, setInputMode] = useState<"annual" | "hourly">("annual");
   const [hourlyRate, setHourlyRate] = useState("");
@@ -45,11 +43,20 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
     const hw = params.get("hours");
     if (hw && /^\d+$/.test(hw) && Number(hw) >= 1 && Number(hw) <= 168) setHoursPerWeek(hw);
     const f = params.get("filing");
-    if (f === "married") setFiling("married");
+    if (f === "married" || f === "mfs" || f === "hoh" || f === "qss") setFiling(f as FilingStatus);
     const k = params.get("401k");
-    if (k && /^\d+$/.test(k) && Number(k) > 0) setContribution401k(k);
+    if (k && /^\d+$/.test(k) && Number(k) > 0) setContribution401k(Number(k).toLocaleString("en-US"));
+    const hi = params.get("health");
+    if (hi && /^\d+$/.test(hi) && Number(hi) > 0) setHealthInsurance(Number(hi).toLocaleString("en-US"));
+    const hsaParam = params.get("hsa");
+    if (hsaParam && /^\d+$/.test(hsaParam) && Number(hsaParam) > 0) setHsa(Number(hsaParam).toLocaleString("en-US"));
     const c = params.get("city");
     if (c && CITY_BY_SLUG.has(c)) setCitySlug(c);
+    if (params.get("itemized") === "1") setUseItemized(true);
+    const mi = params.get("mortgage");
+    if (mi && /^\d+$/.test(mi) && Number(mi) > 0) setMortgageInterest(Number(mi).toLocaleString("en-US"));
+    const ch = params.get("charity");
+    if (ch && /^\d+$/.test(ch) && Number(ch) > 0) setCharitable(Number(ch).toLocaleString("en-US"));
     setInitialized(true);
   }, []);
 
@@ -66,10 +73,21 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
     if (filing !== "single") params.set("filing", filing);
     const k = Number(contribution401k.replace(/[^\d]/g, ""));
     if (k > 0) params.set("401k", String(k));
+    const hiNum = Number(healthInsurance.replace(/[^\d]/g, ""));
+    if (hiNum > 0) params.set("health", String(hiNum));
+    const hsaNum2 = Number(hsa.replace(/[^\d]/g, ""));
+    if (hsaNum2 > 0) params.set("hsa", String(hsaNum2));
     if (citySlug) params.set("city", citySlug);
+    if (useItemized) {
+      params.set("itemized", "1");
+      const mi = Number(mortgageInterest.replace(/[^\d]/g, ""));
+      if (mi > 0) params.set("mortgage", String(mi));
+      const ch = Number(charitable.replace(/[^\d]/g, ""));
+      if (ch > 0) params.set("charity", String(ch));
+    }
     const qs = params.toString();
     window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
-  }, [inputMode, hourlyRate, hoursPerWeek, filing, contribution401k, citySlug, initialized]);
+  }, [inputMode, hourlyRate, hoursPerWeek, filing, contribution401k, healthInsurance, hsa, citySlug, useItemized, mortgageInterest, charitable, initialized]);
 
   const handleCopyLink = useCallback(() => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -86,7 +104,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
       return annual >= 1_000 ? annual : initialAmount;
     }
     const n = Number(salaryInput.replace(/[^0-9]/g, ""));
-    return n >= 1_000 && n <= 100_000_000_000_000 ? n : initialAmount;
+    return n >= 1_000 ? n : initialAmount;
   }, [inputMode, salaryInput, hourlyRate, hoursPerWeek, initialAmount]);
 
   const annualHours = useMemo(() => {
@@ -102,6 +120,26 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
     return n > 0 ? n : 0;
   }, [contribution401k]);
 
+  const healthInsNum = useMemo(() => {
+    const n = Number(healthInsurance.replace(/[^\d]/g, ""));
+    return n > 0 ? n : 0;
+  }, [healthInsurance]);
+
+  const hsaNum = useMemo(() => {
+    const n = Number(hsa.replace(/[^\d]/g, ""));
+    return n > 0 ? n : 0;
+  }, [hsa]);
+
+  const mortgageNum = useMemo(() => {
+    const n = Number(mortgageInterest.replace(/[^\d]/g, ""));
+    return n > 0 ? n : 0;
+  }, [mortgageInterest]);
+
+  const charitableNum = useMemo(() => {
+    const n = Number(charitable.replace(/[^\d]/g, ""));
+    return n > 0 ? n : 0;
+  }, [charitable]);
+
   const citiesForState = useMemo(() => CITIES_BY_STATE.get(stateConfig.slug) ?? [], [stateConfig.slug]);
 
   const cityConfig = useMemo(() => {
@@ -110,19 +148,20 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
   }, [citySlug, stateConfig.slug]);
 
   const tax = useMemo(
-    () => calculateTax(stateConfig, amount, { filingStatus: filing, contribution401k: contrib401kNum, cityConfig }),
-    [stateConfig, amount, filing, contrib401kNum, cityConfig]
+    () => calculateTax(stateConfig, amount, { filingStatus: filing, contribution401k: contrib401kNum, healthInsurance: healthInsNum, hsa: hsaNum, cityConfig, ...(useItemized ? { mortgageInterest: mortgageNum, charitable: charitableNum } : {}) }),
+    [stateConfig, amount, filing, contrib401kNum, healthInsNum, hsaNum, cityConfig, useItemized, mortgageNum, charitableNum]
   );
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSalaryInput(e.target.value);
+    const raw = e.target.value.replace(/[^\d]/g, "");
+    setSalaryInput(raw ? Number(raw).toLocaleString("en-US") : "");
   }, []);
 
   const handleNavigate = useCallback(() => {
     const n = inputMode === "hourly"
       ? Math.round((parseFloat(hourlyRate) || 0) * (parseInt(hoursPerWeek) || 40) * 52)
       : Number(salaryInput.replace(/[^0-9]/g, ""));
-    if (n >= 1_000 && n <= 100_000_000_000_000) {
+    if (n >= 1_000) {
       const params = new URLSearchParams();
       if (inputMode === "hourly") {
         params.set("mode", "hourly");
@@ -133,11 +172,18 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
       if (filing !== "single") params.set("filing", filing);
       const k = Number(contribution401k.replace(/[^\d]/g, ""));
       if (k > 0) params.set("401k", String(k));
+      if (healthInsNum > 0) params.set("health", String(healthInsNum));
+      if (hsaNum > 0) params.set("hsa", String(hsaNum));
       if (citySlug) params.set("city", citySlug);
+      if (useItemized) {
+        params.set("itemized", "1");
+        if (mortgageNum > 0) params.set("mortgage", String(mortgageNum));
+        if (charitableNum > 0) params.set("charity", String(charitableNum));
+      }
       const qs = params.toString();
       router.push(`/salary/${n}-salary-after-tax-${stateConfig.slug}${qs ? `?${qs}` : ""}`);
     }
-  }, [inputMode, salaryInput, hourlyRate, hoursPerWeek, router, stateConfig.slug, filing, contribution401k, citySlug]);
+  }, [inputMode, salaryInput, hourlyRate, hoursPerWeek, router, stateConfig.slug, filing, contribution401k, healthInsNum, hsaNum, citySlug, useItemized, mortgageNum, charitableNum]);
 
   const { name: stateName, noTax, slug: stateSlug, topRateDisplay } = stateConfig;
 
@@ -312,7 +358,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
             </div>
             <button
               onClick={handleNavigate}
-              className="bg-blue-700 text-white px-4 py-3.5 rounded-xl font-bold hover:bg-blue-800 transition-colors whitespace-nowrap text-sm shadow-sm"
+              className="bg-blue-700 text-white px-2 sm:px-4 py-3.5 rounded-xl font-bold hover:bg-blue-800 transition-colors whitespace-nowrap text-sm shadow-sm"
             >
               Full Page →
             </button>
@@ -323,11 +369,14 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
             <label className="block text-xs font-semibold text-gray-600 mb-1">Filing Status</label>
             <select
               value={filing}
-              onChange={(e) => setFiling(e.target.value as "single" | "married")}
+              onChange={(e) => setFiling(e.target.value as FilingStatus)}
               className="w-full border border-blue-200 rounded-xl px-3 py-2 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
             >
               <option value="single">Single</option>
               <option value="married">Married Filing Jointly</option>
+              <option value="mfs">Married Filing Separately</option>
+              <option value="hoh">Head of Household</option>
+              <option value="qss">Qualifying Surviving Spouse</option>
             </select>
           </div>
           <div>
@@ -338,21 +387,123 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                 type="text"
                 inputMode="numeric"
                 value={contribution401k}
-                onChange={(e) => setContribution401k(e.target.value)}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^\d]/g, "");
+                  setContribution401k(raw ? Number(raw).toLocaleString("en-US") : "");
+                }}
                 placeholder="0"
                 className="w-full pl-7 pr-3 py-2 border border-blue-200 rounded-xl text-sm font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
               />
             </div>
           </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Health Insurance Premium</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm pointer-events-none">$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={healthInsurance}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^\d]/g, "");
+                  setHealthInsurance(raw ? Number(raw).toLocaleString("en-US") : "");
+                }}
+                placeholder="0"
+                className="w-full pl-7 pr-3 py-2 border border-blue-200 rounded-xl text-sm font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">HSA Contribution</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm pointer-events-none">$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={hsa}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^\d]/g, "");
+                  setHsa(raw ? Number(raw).toLocaleString("en-US") : "");
+                }}
+                placeholder="0"
+                className="w-full pl-7 pr-3 py-2 border border-blue-200 rounded-xl text-sm font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+              />
+            </div>
+          </div>
+          {/* Itemized deductions toggle */}
+          <div className="sm:col-span-2 border-t border-blue-100 pt-3">
+            <button
+              type="button"
+              onClick={() => setUseItemized((v) => !v)}
+              className="flex items-center gap-2 text-sm text-blue-700 font-semibold hover:text-blue-900 transition-colors"
+            >
+              <span className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${useItemized ? "bg-blue-600 border-blue-600" : "border-gray-300"}`}>
+                {useItemized && <span className="text-white text-xs leading-none">✓</span>}
+              </span>
+              Use itemized deductions instead of standard (${(16_100).toLocaleString()})
+            </button>
+            {useItemized && (
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Mortgage Interest</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm pointer-events-none">$</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={mortgageInterest}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^\d]/g, "");
+                        setMortgageInterest(raw ? Number(raw).toLocaleString("en-US") : "");
+                      }}
+                      placeholder="0"
+                      className="w-full pl-7 pr-3 py-2 border border-blue-200 rounded-xl text-sm font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Charitable Giving</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm pointer-events-none">$</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={charitable}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^\d]/g, "");
+                        setCharitable(raw ? Number(raw).toLocaleString("en-US") : "");
+                      }}
+                      placeholder="0"
+                      className="w-full pl-7 pr-3 py-2 border border-blue-200 rounded-xl text-sm font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+                    />
+                  </div>
+                </div>
+                {(() => {
+                  const total = mortgageNum + charitableNum;
+                  return total > 0 && (
+                    <p className={`col-span-2 text-xs px-3 py-2 rounded-lg ${total > 16_100 ? "bg-green-50 text-green-700 border border-green-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
+                      {total > 16_100
+                        ? `✓ Itemized total ($${total.toLocaleString()}) exceeds standard — itemized deduction applied.`
+                        : `⚠ Itemized total ($${total.toLocaleString()}) is below $16,100 standard — standard deduction used.`}
+                    </p>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
           {citiesForState.length > 0 && (
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">City / Local Tax</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                {stateSlug === "maryland" ? "County Income Tax" : "City / Local Tax"}
+              </label>
               <select
                 value={citySlug}
                 onChange={(e) => setCitySlug(e.target.value)}
                 className="w-full border border-blue-200 rounded-xl px-3 py-2 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
               >
-                <option value="">No city tax</option>
+                <option value="">
+                  {stateSlug === "maryland" ? "All counties — avg 2.5%" : "No city tax"}
+                </option>
                 {citiesForState.map((c) => (
                   <option key={c.slug} value={c.slug}>{c.name} — {c.topRateDisplay}</option>
                 ))}
@@ -553,11 +704,53 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                     <td className="text-gray-400">—</td>
                     <td className="font-bold text-gray-900 tabular-nums">{fmt(tax.gross)}</td>
                   </tr>
+                  {tax.contribution401k > 0 && (
+                    <tr className="bg-blue-50">
+                      <td className="text-gray-700">
+                        401(k) Pre-Tax Contribution
+                        <span className="block text-xs text-gray-400 mt-0.5">Reduces federal + state taxable income (not FICA)</span>
+                      </td>
+                      <td className="text-gray-400 text-sm">Pre-tax</td>
+                      <td className="text-blue-700 font-semibold tabular-nums">−{fmt(tax.contribution401k)}</td>
+                    </tr>
+                  )}
+                  {tax.healthInsurancePremium > 0 && (
+                    <tr className="bg-sky-50">
+                      <td className="text-gray-700">
+                        Health Insurance Premium
+                        <span className="block text-xs text-gray-400 mt-0.5">Section 125 — reduces federal, FICA, and state taxable income</span>
+                      </td>
+                      <td className="text-gray-400 text-sm">Pre-tax</td>
+                      <td className="text-sky-700 font-semibold tabular-nums">−{fmt(tax.healthInsurancePremium)}</td>
+                    </tr>
+                  )}
+                  {tax.hsaContribution > 0 && (
+                    <tr className="bg-cyan-50">
+                      <td className="text-gray-700">
+                        HSA Contribution
+                        <span className="block text-xs text-gray-400 mt-0.5">Reduces federal, FICA, and state taxable income</span>
+                      </td>
+                      <td className="text-gray-400 text-sm">Pre-tax</td>
+                      <td className="text-cyan-700 font-semibold tabular-nums">−{fmt(tax.hsaContribution)}</td>
+                    </tr>
+                  )}
+                  {tax.isItemized && (
+                    <tr className="bg-indigo-50">
+                      <td className="text-gray-700">
+                        Itemized Deductions
+                        <span className="block text-xs text-gray-400 mt-0.5">
+                          Mortgage interest + charitable — exceeds ${(16_100).toLocaleString()} standard deduction
+                        </span>
+                      </td>
+                      <td className="text-gray-400 text-sm">Pre-tax</td>
+                      <td className="text-indigo-700 font-semibold tabular-nums">−{fmt(tax.deductionApplied)}</td>
+                    </tr>
+                  )}
                   <tr>
                     <td>
                       <span className="font-medium">Federal Income Tax</span>
                       <span className="block text-xs text-gray-400 mt-0.5">
-                        After ${tax.standardDeduction.toLocaleString()} std. deduction → {fmt(tax.federalTaxable)} taxable
+                        After {tax.isItemized ? "itemized" : `$${tax.standardDeduction.toLocaleString()} std.`} deduction → {fmt(tax.federalTaxable)} taxable
                       </span>
                     </td>
                     <td className="text-gray-600 tabular-nums">{pct(tax.effectiveFederalRate)}</td>
@@ -607,7 +800,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                   {tax.cityTax > 0 && cityConfig && (
                     <tr className="bg-teal-50">
                       <td className="font-medium text-gray-700">
-                        {cityConfig.name} City Tax
+                        {cityConfig.overridesAdditionalRate ? `${cityConfig.name} County Tax` : `${cityConfig.name} City Tax`}
                         <span className="block text-xs text-gray-400 mt-0.5">
                           {cityConfig.description}
                         </span>
@@ -630,7 +823,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
               </table>
             </div>
             <p className="text-xs text-gray-400 mt-2">
-              Calculations based on {TAX_YEAR} IRS brackets and official state tax tables. {filing === "married" ? "Married filing jointly" : "Single filer"}, standard deduction applied. State tax is estimated — actual amounts vary by credits and deductions.
+              Calculations based on {TAX_YEAR} IRS brackets and official state tax tables. {FILING_STATUS_LABELS[filing]}, standard deduction applied. State tax is estimated — actual amounts vary by credits and deductions.
             </p>
           </section>
 
@@ -689,7 +882,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="font-bold text-gray-900 mb-1">Filing Assumptions</p>
                   <ul className="list-disc list-inside space-y-1 text-xs text-gray-500">
-                    <li>Filing status: {filing === "married" ? "Married Filing Jointly" : "Single filer"}</li>
+                    <li>Filing status: {FILING_STATUS_LABELS[filing]}</li>
                     <li>Federal standard deduction: ${tax.standardDeduction.toLocaleString()} ({TAX_YEAR}, IRS Rev. Proc. 2025-32)</li>
                     <li>No additional credits, itemized deductions, or pre-tax contributions assumed</li>
                     <li>Social Security wage base: $184,500 ({TAX_YEAR}, SSA COLA 2026 announcement)</li>
@@ -814,7 +1007,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
           {/* Federal Tax Brackets */}
           <section>
             <h2 className="text-xl font-bold text-gray-900 mb-4">
-              {TAX_YEAR} Federal Tax Brackets (Single Filer)
+              {TAX_YEAR} Federal Tax Brackets ({FILING_STATUS_LABELS[filing]})
             </h2>
             <div className="rounded-xl border border-gray-200 overflow-hidden shadow-sm">
               <table className="tax-table">
@@ -822,19 +1015,21 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                   <tr><th>Bracket</th><th>Taxable Income Range</th><th>Rate</th></tr>
                 </thead>
                 <tbody>
-                  {BRACKET_LABELS.map((label, i) => {
-                    const bracketMin = FEDERAL_BRACKETS_2026[i].min;
-                    const bracketRate = FEDERAL_BRACKETS_2026[i].rate;
-                    const applies = tax.federalTaxable > bracketMin;
-                    const isTop = applies && bracketRate === tax.marginalRate;
+                  {FEDERAL_BRACKETS_BY_STATUS[filing].map((bracket, i) => {
+                    const next = FEDERAL_BRACKETS_BY_STATUS[filing][i + 1];
+                    const label = next
+                      ? `${fmt(bracket.min)} – ${fmt(next.min - 1)}`
+                      : `Over ${fmt(bracket.min)}`;
+                    const applies = tax.federalTaxable > bracket.min;
+                    const isTop = applies && bracket.rate === tax.marginalRate;
                     return (
                       <tr
-                        key={label}
+                        key={i}
                         className={isTop ? "bg-blue-50 font-semibold" : applies ? "" : "opacity-40"}
                       >
                         <td>{isTop && <span className="text-blue-700 text-xs font-bold">← Your top bracket</span>}</td>
                         <td>{label}</td>
-                        <td className="font-semibold">{Math.round(bracketRate * 100)}%</td>
+                        <td className="font-semibold">{Math.round(bracket.rate * 100)}%</td>
                       </tr>
                     );
                   })}
@@ -888,6 +1083,73 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
             </div>
             <p className="text-xs text-gray-400">* State estimates are approximate. Actual amounts vary by local taxes and deductions.</p>
           </section>
+
+          {/* Cost of Living Context */}
+          {(() => {
+            const col = COST_OF_LIVING[stateSlug];
+            if (!col) return null;
+            const monthlyTakeHome = tax.takeHome / 12;
+            const totalMonthly = col.rent + col.groceries + col.transport + col.utilities;
+            const leftover = Math.round(monthlyTakeHome - totalMonthly);
+            const tierClass = COL_TIER_COLOR[col.tier];
+            return (
+              <section className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-extrabold text-gray-900">
+                      What Can ${amtFmt} Buy You in {stateName}?
+                    </h2>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      Estimated monthly costs for a single person · {TAX_YEAR}
+                    </p>
+                  </div>
+                  <span className={`text-xs font-bold px-3 py-1.5 rounded-full border whitespace-nowrap ${tierClass}`}>
+                    {COL_TIER_LABEL[col.tier]}
+                  </span>
+                </div>
+                <div className="p-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
+                    {[
+                      { label: "Rent (1BR)", value: col.rent, icon: "🏠" },
+                      { label: "Groceries", value: col.groceries, icon: "🛒" },
+                      { label: "Transportation", value: col.transport, icon: "🚗" },
+                      { label: "Utilities", value: col.utilities, icon: "⚡" },
+                    ].map(({ label, value, icon }) => (
+                      <div key={label} className="bg-gray-50 rounded-xl p-3 text-center">
+                        <div className="text-xl mb-1">{icon}</div>
+                        <p className="text-xs text-gray-500 mb-0.5">{label}</p>
+                        <p className="font-bold text-gray-900 tabular-nums">${value.toLocaleString()}/mo</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className={`rounded-xl p-4 border ${leftover >= 0 ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
+                    <div className="flex justify-between items-start gap-4">
+                      <div>
+                        <p className="font-bold text-gray-900 mb-1">Monthly Budget Snapshot</p>
+                        <div className="text-sm text-gray-600 space-y-0.5">
+                          <div className="flex flex-wrap gap-x-4 gap-y-1">
+                            <span>Take-home: <strong className="text-gray-900">{fmt(monthlyTakeHome)}/mo</strong></span>
+                            <span>Est. basics: <strong className="text-gray-900">${totalMonthly.toLocaleString()}/mo</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className={`text-xl font-black tabular-nums ${leftover >= 0 ? "text-green-700" : "text-red-700"}`}>
+                          {leftover >= 0 ? "+" : "−"}${Math.abs(leftover).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-gray-500">after basics</p>
+                      </div>
+                    </div>
+                    {leftover >= 0 && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Remaining after rent, groceries, transport &amp; utilities. Actual costs vary by city, lifestyle, and family size.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </section>
+            );
+          })()}
 
           {/* FAQ */}
           <section>

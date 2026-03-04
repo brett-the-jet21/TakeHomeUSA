@@ -28,11 +28,12 @@ function salaryPriority(amount: number, isNoTax: boolean): number {
 export default function sitemap(): MetadataRoute.Sitemap {
   // ── Core pages ─────────────────────────────────────────────────────────────
   const corePages: MetadataRoute.Sitemap = [
-    { url: BASE,              lastModified: LAST_MODIFIED, changeFrequency: "weekly",  priority: 1.0  },
-    { url: `${BASE}/texas`,   lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.95 },
-    { url: `${BASE}/states`,  lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.85 },
-    { url: `${BASE}/about`,   lastModified: LAST_MODIFIED, changeFrequency: "yearly",  priority: 0.50 },
-    { url: `${BASE}/privacy`, lastModified: LAST_MODIFIED, changeFrequency: "yearly",  priority: 0.40 },
+    { url: BASE,               lastModified: LAST_MODIFIED, changeFrequency: "weekly",  priority: 1.0  },
+    { url: `${BASE}/texas`,    lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.95 },
+    { url: `${BASE}/states`,   lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.85 },
+    { url: `${BASE}/compare`,  lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.82 },
+    { url: `${BASE}/about`,    lastModified: LAST_MODIFIED, changeFrequency: "yearly",  priority: 0.50 },
+    { url: `${BASE}/privacy`,  lastModified: LAST_MODIFIED, changeFrequency: "yearly",  priority: 0.40 },
   ];
 
   // ── State hub pages + salary pages ────────────────────────────────────────

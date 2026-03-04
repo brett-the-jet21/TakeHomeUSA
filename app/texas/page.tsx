@@ -139,17 +139,17 @@ export default function TexasPage() {
             </p>
 
             {/* Key stat cards */}
-            <div className="grid grid-cols-3 gap-4 max-w-lg">
-              <div className="bg-white/10 rounded-xl p-4 text-center backdrop-blur-sm">
-                <p className="text-2xl font-black text-green-400">$0</p>
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 max-w-lg">
+              <div className="bg-white/10 rounded-xl p-2 sm:p-4 text-center backdrop-blur-sm">
+                <p className="text-xl sm:text-2xl font-black text-green-400">$0</p>
                 <p className="text-xs text-blue-300 mt-1">State Income Tax</p>
               </div>
-              <div className="bg-white/10 rounded-xl p-4 text-center backdrop-blur-sm">
-                <p className="text-2xl font-black">7.65%</p>
+              <div className="bg-white/10 rounded-xl p-2 sm:p-4 text-center backdrop-blur-sm">
+                <p className="text-xl sm:text-2xl font-black">7.65%</p>
                 <p className="text-xs text-blue-300 mt-1">FICA (Social Sec + Medicare)</p>
               </div>
-              <div className="bg-white/10 rounded-xl p-4 text-center backdrop-blur-sm">
-                <p className="text-2xl font-black text-blue-300">10–37%</p>
+              <div className="bg-white/10 rounded-xl p-2 sm:p-4 text-center backdrop-blur-sm">
+                <p className="text-xl sm:text-2xl font-black text-blue-300">10–37%</p>
                 <p className="text-xs text-blue-300 mt-1">Federal Rate</p>
               </div>
             </div>
@@ -230,6 +230,7 @@ export default function TexasPage() {
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
+            <div className="overflow-x-auto">
             <table className="tax-table">
               <thead>
                 <tr>
@@ -262,6 +263,7 @@ export default function TexasPage() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       </section>

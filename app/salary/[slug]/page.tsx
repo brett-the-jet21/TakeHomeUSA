@@ -51,11 +51,11 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const effRate = (tax.effectiveTotalRate * 100).toFixed(1);
 
   const desc = noTax
-    ? `A $${amtFmt} salary in ${stateName} = $${takeFmt}/yr take-home ($${moFmt}/mo · $${biFmt} biweekly). Zero state income tax. Free ${TAX_YEAR} breakdown.`
-    : `A $${amtFmt} salary in ${stateName} = $${takeFmt}/yr take-home ($${moFmt}/mo · $${biFmt} biweekly). State tax up to ${topRateDisplay}. Free ${TAX_YEAR} federal + state breakdown.`;
+    ? `$${amtFmt} in ${stateName}: $${takeFmt}/yr take-home ($${moFmt}/mo · $${biFmt} biweekly). No state income tax. Effective rate: ${effRate}%. Free ${TAX_YEAR} breakdown.`
+    : `$${amtFmt} in ${stateName}: $${takeFmt}/yr take-home ($${moFmt}/mo · $${biFmt} biweekly). Effective rate: ${effRate}%. Free ${TAX_YEAR} federal + state breakdown.`;
 
   return {
-    title: `$${amtFmt} After Tax in ${stateName} — $${takeFmt} Take-Home (${TAX_YEAR})`,
+    title: `$${amtFmt} Salary After Tax in ${stateName} — $${takeFmt} Take-Home (${TAX_YEAR})`,
     description: desc,
     alternates: {
       canonical: `https://www.takehomeusa.com/salary/${slug}`,

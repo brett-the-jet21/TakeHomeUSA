@@ -4,7 +4,8 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ALL_STATE_CONFIGS, STATE_BY_SLUG } from "@/lib/states";
-import { calculateTax, fmt, pct, TAX_YEAR, POPULAR_SALARIES } from "@/lib/tax";
+import { calculateTax, fmt, pct, TAX_YEAR, POPULAR_SALARIES, FILING_STATUS_LABELS } from "@/lib/tax";
+import type { FilingStatus } from "@/lib/tax";
 import { CITIES_BY_STATE, CITY_BY_SLUG } from "@/lib/cities";
 
 // ─── Grouped states for the select dropdown ───────────────────────────────────
@@ -34,12 +35,50 @@ const maxTake = Math.max(...COMPARE_100K.map((s) => s.take));
 const FEATURED_NO_TAX = ["texas", "florida", "nevada", "wyoming", "washington"];
 const FEATURED_TAXED  = ["new-york", "california", "illinois", "colorado", "virginia"];
 
+// IANA timezone → best-match state slug for auto-detect on first visit
+const TIMEZONE_TO_STATE: Record<string, string> = {
+  "America/New_York":               "new-york",
+  "America/Detroit":                "michigan",
+  "America/Indiana/Indianapolis":   "indiana",
+  "America/Indiana/Tell_City":      "indiana",
+  "America/Indiana/Knox":           "indiana",
+  "America/Indiana/Winamac":        "indiana",
+  "America/Indiana/Marengo":        "indiana",
+  "America/Indiana/Petersburg":     "indiana",
+  "America/Indiana/Vevay":          "indiana",
+  "America/Indiana/Vincennes":      "indiana",
+  "America/Kentucky/Louisville":    "kentucky",
+  "America/Kentucky/Monticello":    "kentucky",
+  "America/Chicago":                "illinois",
+  "America/Menominee":              "michigan",
+  "America/North_Dakota/Center":    "north-dakota",
+  "America/North_Dakota/New_Salem": "north-dakota",
+  "America/North_Dakota/Beulah":    "north-dakota",
+  "America/Denver":                 "colorado",
+  "America/Boise":                  "idaho",
+  "America/Phoenix":                "arizona",
+  "America/Los_Angeles":            "california",
+  "America/Anchorage":              "alaska",
+  "America/Juneau":                 "alaska",
+  "America/Sitka":                  "alaska",
+  "America/Yakutat":                "alaska",
+  "America/Nome":                   "alaska",
+  "America/Metlakatla":             "alaska",
+  "America/Adak":                   "alaska",
+  "Pacific/Honolulu":               "hawaii",
+};
+
 export default function HomePageClient() {
   const router = useRouter();
-  const [salary, setSalary] = useState("100000");
+  const [salary, setSalary] = useState("100,000");
   const [stateSlug, setStateSlug] = useState("texas");
-  const [filing, setFiling] = useState<"single" | "married">("single");
+  const [filing, setFiling] = useState<FilingStatus>("single");
   const [contribution401k, setContribution401k] = useState("");
+  const [healthInsurance, setHealthInsurance] = useState("");
+  const [hsa, setHsa] = useState("");
+  const [useItemized, setUseItemized] = useState(false);
+  const [mortgageInterest, setMortgageInterest] = useState("");
+  const [charitable, setCharitable] = useState("");
   const [citySlug, setCitySlug] = useState("");
   const [inputMode, setInputMode] = useState<"annual" | "hourly">("annual");
   const [hourlyRate, setHourlyRate] = useState("");
@@ -51,21 +90,38 @@ export default function HomePageClient() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const s = params.get("salary");
-    if (s && /^\d+$/.test(s)) setSalary(s);
+    if (s && /^\d+$/.test(s)) setSalary(Number(s).toLocaleString("en-US"));
     const st = params.get("state");
     if (st && STATE_BY_SLUG.has(st)) setStateSlug(st);
     const f = params.get("filing");
-    if (f === "married") setFiling("married");
+    if (f === "married" || f === "mfs" || f === "hoh" || f === "qss") setFiling(f as FilingStatus);
     const k = params.get("401k");
-    if (k && /^\d+$/.test(k) && Number(k) > 0) setContribution401k(k);
+    if (k && /^\d+$/.test(k) && Number(k) > 0) setContribution401k(Number(k).toLocaleString("en-US"));
+    const hi = params.get("health");
+    if (hi && /^\d+$/.test(hi) && Number(hi) > 0) setHealthInsurance(Number(hi).toLocaleString("en-US"));
+    const hsaParam = params.get("hsa");
+    if (hsaParam && /^\d+$/.test(hsaParam) && Number(hsaParam) > 0) setHsa(Number(hsaParam).toLocaleString("en-US"));
     const c = params.get("city");
     if (c && CITY_BY_SLUG.has(c)) setCitySlug(c);
+    if (params.get("itemized") === "1") setUseItemized(true);
+    const mi = params.get("mortgage");
+    if (mi && /^\d+$/.test(mi) && Number(mi) > 0) setMortgageInterest(Number(mi).toLocaleString("en-US"));
+    const ch = params.get("charity");
+    if (ch && /^\d+$/.test(ch) && Number(ch) > 0) setCharitable(Number(ch).toLocaleString("en-US"));
     const m = params.get("mode");
     if (m === "hourly") setInputMode("hourly");
     const r = params.get("rate");
     if (r && /^\d+(\.\d+)?$/.test(r) && parseFloat(r) > 0) setHourlyRate(r);
     const hw = params.get("hours");
     if (hw && /^\d+$/.test(hw) && Number(hw) >= 1 && Number(hw) <= 168) setHoursPerWeek(hw);
+    // Auto-detect state from timezone only when no explicit ?state= param
+    if (!params.get("state")) {
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const tzState = TIMEZONE_TO_STATE[tz];
+        if (tzState && STATE_BY_SLUG.has(tzState)) setStateSlug(tzState);
+      } catch { /* ignore detection failures */ }
+    }
     setInitialized(true);
   }, []);
 
@@ -79,7 +135,18 @@ export default function HomePageClient() {
     if (filing !== "single") params.set("filing", filing);
     const k = Number(contribution401k.replace(/[^\d]/g, ""));
     if (k > 0) params.set("401k", String(k));
+    const hiNum = Number(healthInsurance.replace(/[^\d]/g, ""));
+    if (hiNum > 0) params.set("health", String(hiNum));
+    const hsaNum2 = Number(hsa.replace(/[^\d]/g, ""));
+    if (hsaNum2 > 0) params.set("hsa", String(hsaNum2));
     if (citySlug) params.set("city", citySlug);
+    if (useItemized) {
+      params.set("itemized", "1");
+      const mi = Number(mortgageInterest.replace(/[^\d]/g, ""));
+      if (mi > 0) params.set("mortgage", String(mi));
+      const ch = Number(charitable.replace(/[^\d]/g, ""));
+      if (ch > 0) params.set("charity", String(ch));
+    }
     if (inputMode === "hourly") {
       params.set("mode", "hourly");
       const r = parseFloat(hourlyRate);
@@ -88,7 +155,7 @@ export default function HomePageClient() {
     }
     const qs = params.toString();
     window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
-  }, [salary, stateSlug, filing, contribution401k, citySlug, inputMode, hourlyRate, hoursPerWeek, initialized]);
+  }, [salary, stateSlug, filing, contribution401k, healthInsurance, hsa, citySlug, inputMode, hourlyRate, hoursPerWeek, useItemized, mortgageInterest, charitable, initialized]);
 
   const handleCopyLink = useCallback(() => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -105,6 +172,26 @@ export default function HomePageClient() {
     const n = Number(contribution401k.replace(/[^\d]/g, ""));
     return n > 0 ? n : 0;
   }, [contribution401k]);
+
+  const healthInsNum = useMemo(() => {
+    const n = Number(healthInsurance.replace(/[^\d]/g, ""));
+    return n > 0 ? n : 0;
+  }, [healthInsurance]);
+
+  const hsaNum = useMemo(() => {
+    const n = Number(hsa.replace(/[^\d]/g, ""));
+    return n > 0 ? n : 0;
+  }, [hsa]);
+
+  const mortgageNum = useMemo(() => {
+    const n = Number(mortgageInterest.replace(/[^\d]/g, ""));
+    return n > 0 ? n : 0;
+  }, [mortgageInterest]);
+
+  const charitableNum = useMemo(() => {
+    const n = Number(charitable.replace(/[^\d]/g, ""));
+    return n > 0 ? n : 0;
+  }, [charitable]);
 
   const citiesForState = useMemo(() => CITIES_BY_STATE.get(stateSlug) ?? [], [stateSlug]);
 
@@ -124,19 +211,31 @@ export default function HomePageClient() {
 
   const previewTax = useMemo(() => {
     const n = grossAnnual;
-    if (!n || n < 1_000 || n > 100_000_000_000_000) return null;
-    return calculateTax(cfg, n, { filingStatus: filing, contribution401k: contrib401kNum, cityConfig });
-  }, [grossAnnual, cfg, filing, contrib401kNum, cityConfig]);
+    if (!n || n < 1_000) return null;
+    return calculateTax(cfg, n, { filingStatus: filing, contribution401k: contrib401kNum, healthInsurance: healthInsNum, hsa: hsaNum, cityConfig, ...(useItemized ? { mortgageInterest: mortgageNum, charitable: charitableNum } : {}) });
+  }, [grossAnnual, cfg, filing, contrib401kNum, healthInsNum, hsaNum, cityConfig, useItemized, mortgageNum, charitableNum]);
 
   function handleCalculate() {
     const raw = grossAnnual;
     if (!raw || raw < 1_000) return;
-    const step = stateSlug === "texas" ? 1_000 : 5_000;
-    const rounded = Math.max(20_000, Math.min(500_000, Math.round(raw / step) * step));
+    let targetAmount: number;
+    if (raw <= 500_000) {
+      const step = stateSlug === "texas" ? 1_000 : 5_000;
+      targetAmount = Math.max(20_000, Math.round(raw / step) * step);
+    } else {
+      targetAmount = raw;
+    }
     const params = new URLSearchParams();
     if (filing !== "single") params.set("filing", filing);
     if (contrib401kNum > 0) params.set("401k", String(contrib401kNum));
+    if (healthInsNum > 0) params.set("health", String(healthInsNum));
+    if (hsaNum > 0) params.set("hsa", String(hsaNum));
     if (citySlug) params.set("city", citySlug);
+    if (useItemized) {
+      params.set("itemized", "1");
+      if (mortgageNum > 0) params.set("mortgage", String(mortgageNum));
+      if (charitableNum > 0) params.set("charity", String(charitableNum));
+    }
     if (inputMode === "hourly") {
       params.set("mode", "hourly");
       const r = parseFloat(hourlyRate);
@@ -144,11 +243,11 @@ export default function HomePageClient() {
       if (hoursPerWeek !== "40") params.set("hours", hoursPerWeek);
     }
     const qs = params.toString();
-    router.push(`/salary/${rounded}-salary-after-tax-${stateSlug}${qs ? `?${qs}` : ""}`);
+    router.push(`/salary/${targetAmount}-salary-after-tax-${stateSlug}${qs ? `?${qs}` : ""}`);
   }
 
   const { name: stateName, noTax, topRateDisplay } = cfg;
-  const filingLabel = filing === "married" ? "Married Filing Jointly" : "Single";
+  const filingLabel = FILING_STATUS_LABELS[filing];
 
   return (
     <>
@@ -255,7 +354,10 @@ export default function HomePageClient() {
                         <input
                           inputMode="numeric"
                           value={salary}
-                          onChange={(e) => setSalary(e.target.value)}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/[^\d]/g, "");
+                            setSalary(raw ? Number(raw).toLocaleString("en-US") : "");
+                          }}
                           onKeyDown={(e) => e.key === "Enter" && handleCalculate()}
                           placeholder="100,000"
                           className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-4 text-2xl font-extrabold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
@@ -330,18 +432,21 @@ export default function HomePageClient() {
                     </select>
                   </label>
 
-                  {/* City / local tax — only shown for states with city taxes */}
+                  {/* City / county tax — only shown for states with local taxes */}
                   {citiesForState.length > 0 && (
                     <label className="block">
                       <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
-                        City / Local Tax <span className="font-normal normal-case">(optional)</span>
+                        {stateSlug === "maryland" ? "County Income Tax" : "City / Local Tax"}{" "}
+                        <span className="font-normal normal-case">(optional)</span>
                       </span>
                       <select
                         value={citySlug}
                         onChange={(e) => setCitySlug(e.target.value)}
                         className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3.5 text-base font-semibold focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 bg-white transition-all"
                       >
-                        <option value="">No city tax</option>
+                        <option value="">
+                          {stateSlug === "maryland" ? "All counties — avg 2.5%" : "No city tax"}
+                        </option>
                         {citiesForState.map((c) => (
                           <option key={c.slug} value={c.slug}>
                             {c.name} — {c.topRateDisplay}
@@ -358,11 +463,14 @@ export default function HomePageClient() {
                     </span>
                     <select
                       value={filing}
-                      onChange={(e) => setFiling(e.target.value as "single" | "married")}
+                      onChange={(e) => setFiling(e.target.value as FilingStatus)}
                       className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3.5 text-base font-semibold focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 bg-white transition-all"
                     >
                       <option value="single">Single</option>
                       <option value="married">Married Filing Jointly</option>
+                      <option value="mfs">Married Filing Separately</option>
+                      <option value="hoh">Head of Household</option>
+                      <option value="qss">Qualifying Surviving Spouse</option>
                     </select>
                   </label>
 
@@ -376,12 +484,119 @@ export default function HomePageClient() {
                       <input
                         inputMode="numeric"
                         value={contribution401k}
-                        onChange={(e) => setContribution401k(e.target.value)}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/[^\d]/g, "");
+                          setContribution401k(raw ? Number(raw).toLocaleString("en-US") : "");
+                        }}
                         placeholder="0"
                         className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-3.5 text-base font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
                       />
                     </div>
                   </label>
+
+                  {/* Health insurance pre-tax premium (Section 125) */}
+                  <label className="block">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
+                      Health Insurance Premium <span className="font-normal normal-case">(optional — annual)</span>
+                    </span>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl font-bold">$</span>
+                      <input
+                        inputMode="numeric"
+                        value={healthInsurance}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/[^\d]/g, "");
+                          setHealthInsurance(raw ? Number(raw).toLocaleString("en-US") : "");
+                        }}
+                        placeholder="0"
+                        className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-3.5 text-base font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                      />
+                    </div>
+                  </label>
+
+                  {/* HSA payroll contribution */}
+                  <label className="block">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
+                      HSA Contribution <span className="font-normal normal-case">(optional — annual)</span>
+                    </span>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl font-bold">$</span>
+                      <input
+                        inputMode="numeric"
+                        value={hsa}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/[^\d]/g, "");
+                          setHsa(raw ? Number(raw).toLocaleString("en-US") : "");
+                        }}
+                        placeholder="0"
+                        className="w-full border-2 border-gray-200 rounded-2xl pl-9 pr-4 py-3.5 text-base font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                      />
+                    </div>
+                  </label>
+
+                  {/* Itemized Deductions Toggle */}
+                  <div className="border-t border-gray-100 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setUseItemized((v) => !v)}
+                      className="flex items-center gap-2 text-sm text-blue-700 font-semibold hover:text-blue-900 transition-colors"
+                    >
+                      <span className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${useItemized ? "bg-blue-600 border-blue-600" : "border-gray-300"}`}>
+                        {useItemized && <span className="text-white text-xs leading-none">✓</span>}
+                      </span>
+                      Use itemized deductions instead of standard (${(16_100).toLocaleString()})
+                    </button>
+                    {useItemized && (
+                      <div className="mt-3 grid grid-cols-2 gap-3">
+                        <label className="block">
+                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">
+                            Mortgage Interest
+                          </span>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">$</span>
+                            <input
+                              inputMode="numeric"
+                              value={mortgageInterest}
+                              onChange={(e) => {
+                                const raw = e.target.value.replace(/[^\d]/g, "");
+                                setMortgageInterest(raw ? Number(raw).toLocaleString("en-US") : "");
+                              }}
+                              placeholder="0"
+                              className="w-full border-2 border-blue-200 rounded-xl pl-7 pr-3 py-2.5 text-sm font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                            />
+                          </div>
+                        </label>
+                        <label className="block">
+                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">
+                            Charitable Giving
+                          </span>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">$</span>
+                            <input
+                              inputMode="numeric"
+                              value={charitable}
+                              onChange={(e) => {
+                                const raw = e.target.value.replace(/[^\d]/g, "");
+                                setCharitable(raw ? Number(raw).toLocaleString("en-US") : "");
+                              }}
+                              placeholder="0"
+                              className="w-full border-2 border-blue-200 rounded-xl pl-7 pr-3 py-2.5 text-sm font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                            />
+                          </div>
+                        </label>
+                        {(() => {
+                          const total = mortgageNum + charitableNum;
+                          return total > 0 && (
+                            <p className={`col-span-2 text-xs px-3 py-2 rounded-lg ${total > 16_100 ? "bg-green-50 text-green-700 border border-green-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
+                              {total > 16_100
+                                ? `✓ Your itemized total ($${total.toLocaleString()}) exceeds the standard deduction — itemized deduction applied.`
+                                : `⚠ Your itemized total ($${total.toLocaleString()}) is below the $16,100 standard deduction — standard deduction is being used.`}
+                            </p>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Live Preview */}
@@ -423,6 +638,12 @@ export default function HomePageClient() {
                       <div className="bg-orange-300" style={{ width: `${(previewTax.ficaTotal / previewTax.gross) * 100}%` }} />
                       {previewTax.contribution401k > 0 && (
                         <div className="bg-blue-300" style={{ width: `${(previewTax.contribution401k / previewTax.gross) * 100}%` }} />
+                      )}
+                      {previewTax.healthInsurancePremium > 0 && (
+                        <div className="bg-sky-300" style={{ width: `${(previewTax.healthInsurancePremium / previewTax.gross) * 100}%` }} />
+                      )}
+                      {previewTax.hsaContribution > 0 && (
+                        <div className="bg-cyan-300" style={{ width: `${(previewTax.hsaContribution / previewTax.gross) * 100}%` }} />
                       )}
                       <div className="bg-green-400 flex-1" />
                     </div>
@@ -493,7 +714,7 @@ export default function HomePageClient() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="salary-showcase-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {SHOWCASE_AMOUNTS.map((amount) => {
             const tax = calculateTax(cfg, amount);
             const badge = SHOWCASE_BADGES[amount];
@@ -501,24 +722,24 @@ export default function HomePageClient() {
               <Link
                 key={amount}
                 href={`/salary/${amount}-salary-after-tax-${stateSlug}`}
-                className="group relative bg-white border border-gray-200 rounded-2xl p-5 hover:border-blue-400 hover:shadow-xl transition-all duration-200"
+                className="salary-card-mobile group relative bg-white border border-gray-200 rounded-2xl p-5 hover:border-blue-400 hover:shadow-xl transition-all duration-200"
               >
                 {badge && (
                   <span className={`absolute top-3 right-3 text-xs font-bold px-2 py-0.5 rounded-full ${badge === "Most Searched" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
                     {badge}
                   </span>
                 )}
-                <p className="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">Gross</p>
-                <p className="text-xl font-extrabold text-gray-900 group-hover:text-blue-700 mb-3">
+                <p className="salary-gross-label text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">Gross</p>
+                <p className="salary-gross-amount text-xl font-extrabold text-gray-900 group-hover:text-blue-700 mb-3">
                   ${amount.toLocaleString()}
                 </p>
-                <div className="h-px bg-gray-100 mb-3" />
+                <div className="salary-divider h-px bg-gray-100 mb-3" />
                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">Take-Home</p>
-                <p className="text-2xl font-black text-green-600 tabular-nums">{fmt(tax.takeHome)}</p>
-                <p className="text-sm text-gray-500 mt-1 tabular-nums">
+                <p className="salary-takehome-amount text-2xl font-black text-green-600 tabular-nums">{fmt(tax.takeHome)}</p>
+                <p className="salary-monthly-line text-sm text-gray-500 mt-1 tabular-nums">
                   {fmt(tax.takeHome / 12)}/mo · {(tax.effectiveTotalRate * 100).toFixed(1)}% eff.
                 </p>
-                <p className="text-xs text-blue-500 font-medium mt-3 group-hover:text-blue-700">
+                <p className="salary-cta text-xs text-blue-500 font-medium mt-3 group-hover:text-blue-700">
                   Full breakdown →
                 </p>
               </Link>
@@ -711,6 +932,54 @@ export default function HomePageClient() {
           >
             View All 50 States →
           </Link>
+        </div>
+      </section>
+
+      {/* ── Compare Tool CTA ──────────────────────────────────────────────────── */}
+      <section className="container-page mt-14">
+        <div className="bg-gradient-to-r from-blue-700 to-indigo-800 rounded-3xl p-5 sm:p-8 text-white flex flex-col sm:flex-row items-center gap-6">
+          <div className="flex-1">
+            <h2 className="text-2xl font-extrabold mb-2">Compare States Side by Side</h2>
+            <p className="text-blue-200 text-sm leading-relaxed max-w-lg">
+              Thinking about relocating? Our interactive comparison tool shows your exact take-home pay across multiple states at once — pick any 3 and see all salary levels in seconds.
+            </p>
+          </div>
+          <Link
+            href="/compare"
+            className="flex-shrink-0 bg-white text-blue-700 font-extrabold px-7 py-3.5 rounded-xl hover:bg-blue-50 transition-colors whitespace-nowrap shadow-lg"
+          >
+            Compare States →
+          </Link>
+        </div>
+      </section>
+
+      {/* ── FAQ ───────────────────────────────────────────────────────────────── */}
+      <section className="container-page mt-14 mb-6">
+        <h2 className="text-2xl font-extrabold text-gray-900 mb-6">Frequently Asked Questions</h2>
+        <div className="grid sm:grid-cols-2 gap-4">
+          {[
+            {
+              q: "Why is my take-home different from what this calculator shows?",
+              a: "Several factors can create differences: employer health insurance premiums, FSA contributions, retirement beyond 401k, state-specific credits, local/city income taxes, or pre-tax commuter benefits. Use our optional fields (401k, health insurance, HSA) to get a closer estimate for your situation.",
+            },
+            {
+              q: "Does this include Social Security and Medicare taxes?",
+              a: `Yes. All FICA taxes are included: Social Security (6.2% on wages up to $184,500 for ${TAX_YEAR}) and Medicare (1.45% on all wages, plus 0.9% additional on wages over $200,000). These are shown separately in the full breakdown.`,
+            },
+            {
+              q: "What's the difference between effective and marginal tax rate?",
+              a: "Your marginal rate is the rate on your last dollar of income (e.g., 22%). Your effective rate is the average across all income — always lower than marginal because lower brackets apply to the first portions of your income. On a $100K salary, your marginal federal rate might be 22%, but your effective federal rate is ~14%.",
+            },
+            {
+              q: "How do I calculate my hourly rate from an annual salary?",
+              a: "Divide your annual take-home pay by 2,080 (52 weeks × 40 hours) to get your after-tax hourly rate. Use our \"Hourly Wage\" toggle above to enter your exact hourly rate and hours per week for a precise calculation.",
+            },
+          ].map(({ q, a }) => (
+            <div key={q} className="bg-white border border-gray-200 rounded-2xl p-5 hover:border-blue-200 transition-colors">
+              <h3 className="font-bold text-gray-900 mb-2 text-sm">{q}</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">{a}</p>
+            </div>
+          ))}
         </div>
       </section>
 

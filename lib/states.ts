@@ -62,6 +62,8 @@ export function getStateSalaryAmounts(stateSlug: string): number[] {
   const step = stateSlug === "texas" ? 1_000 : 5_000;
   const amounts: number[] = [];
   for (let a = 20_000; a <= 500_000; a += step) amounts.push(a);
+  // Extended range for high earners: $50K steps up to $2M
+  for (let a = 550_000; a <= 2_000_000; a += 50_000) amounts.push(a);
   return amounts;
 }
 
