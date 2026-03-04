@@ -4,7 +4,8 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ALL_STATE_CONFIGS, STATE_BY_SLUG } from "@/lib/states";
-import { calculateTax, fmt, pct, TAX_YEAR, POPULAR_SALARIES } from "@/lib/tax";
+import { calculateTax, fmt, pct, TAX_YEAR, POPULAR_SALARIES, FILING_STATUS_LABELS } from "@/lib/tax";
+import type { FilingStatus } from "@/lib/tax";
 import { CITIES_BY_STATE, CITY_BY_SLUG } from "@/lib/cities";
 
 // ─── Grouped states for the select dropdown ───────────────────────────────────
@@ -71,7 +72,7 @@ export default function HomePageClient() {
   const router = useRouter();
   const [salary, setSalary] = useState("100,000");
   const [stateSlug, setStateSlug] = useState("texas");
-  const [filing, setFiling] = useState<"single" | "married">("single");
+  const [filing, setFiling] = useState<FilingStatus>("single");
   const [contribution401k, setContribution401k] = useState("");
   const [healthInsurance, setHealthInsurance] = useState("");
   const [hsa, setHsa] = useState("");
@@ -93,7 +94,7 @@ export default function HomePageClient() {
     const st = params.get("state");
     if (st && STATE_BY_SLUG.has(st)) setStateSlug(st);
     const f = params.get("filing");
-    if (f === "married") setFiling("married");
+    if (f === "married" || f === "mfs" || f === "hoh" || f === "qss") setFiling(f as FilingStatus);
     const k = params.get("401k");
     if (k && /^\d+$/.test(k) && Number(k) > 0) setContribution401k(Number(k).toLocaleString("en-US"));
     const hi = params.get("health");
@@ -246,7 +247,7 @@ export default function HomePageClient() {
   }
 
   const { name: stateName, noTax, topRateDisplay } = cfg;
-  const filingLabel = filing === "married" ? "Married Filing Jointly" : "Single";
+  const filingLabel = FILING_STATUS_LABELS[filing];
 
   return (
     <>
@@ -462,11 +463,14 @@ export default function HomePageClient() {
                     </span>
                     <select
                       value={filing}
-                      onChange={(e) => setFiling(e.target.value as "single" | "married")}
+                      onChange={(e) => setFiling(e.target.value as FilingStatus)}
                       className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3.5 text-base font-semibold focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 bg-white transition-all"
                     >
                       <option value="single">Single</option>
                       <option value="married">Married Filing Jointly</option>
+                      <option value="mfs">Married Filing Separately</option>
+                      <option value="hoh">Head of Household</option>
+                      <option value="qss">Qualifying Surviving Spouse</option>
                     </select>
                   </label>
 

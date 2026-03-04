@@ -3,20 +3,12 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { calculateTax, fmt, pct, TAX_YEAR, FEDERAL_BRACKETS_2026 } from "@/lib/tax";
+import { calculateTax, fmt, pct, TAX_YEAR, FILING_STATUS_LABELS, FEDERAL_BRACKETS_BY_STATUS } from "@/lib/tax";
+import type { FilingStatus } from "@/lib/tax";
 import type { StateTaxConfig } from "@/lib/states";
 import { CITIES_BY_STATE, CITY_BY_SLUG } from "@/lib/cities";
 import { COST_OF_LIVING, COL_TIER_LABEL, COL_TIER_COLOR } from "@/lib/costOfLiving";
 
-const BRACKET_LABELS = [
-  "$0 – $12,400",
-  "$12,401 – $50,400",
-  "$50,401 – $105,700",
-  "$105,701 – $201,775",
-  "$201,776 – $256,225",
-  "$256,226 – $640,600",
-  "Over $640,600",
-];
 
 interface Props {
   initialAmount: number;
@@ -27,7 +19,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
   const router = useRouter();
   const [salaryInput, setSalaryInput] = useState(initialAmount.toLocaleString("en-US"));
   const [showHowWeCalc, setShowHowWeCalc] = useState(false);
-  const [filing, setFiling] = useState<"single" | "married">("single");
+  const [filing, setFiling] = useState<FilingStatus>("single");
   const [contribution401k, setContribution401k] = useState("");
   const [healthInsurance, setHealthInsurance] = useState("");
   const [hsa, setHsa] = useState("");
@@ -51,7 +43,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
     const hw = params.get("hours");
     if (hw && /^\d+$/.test(hw) && Number(hw) >= 1 && Number(hw) <= 168) setHoursPerWeek(hw);
     const f = params.get("filing");
-    if (f === "married") setFiling("married");
+    if (f === "married" || f === "mfs" || f === "hoh" || f === "qss") setFiling(f as FilingStatus);
     const k = params.get("401k");
     if (k && /^\d+$/.test(k) && Number(k) > 0) setContribution401k(Number(k).toLocaleString("en-US"));
     const hi = params.get("health");
@@ -377,11 +369,14 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
             <label className="block text-xs font-semibold text-gray-600 mb-1">Filing Status</label>
             <select
               value={filing}
-              onChange={(e) => setFiling(e.target.value as "single" | "married")}
+              onChange={(e) => setFiling(e.target.value as FilingStatus)}
               className="w-full border border-blue-200 rounded-xl px-3 py-2 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
             >
               <option value="single">Single</option>
               <option value="married">Married Filing Jointly</option>
+              <option value="mfs">Married Filing Separately</option>
+              <option value="hoh">Head of Household</option>
+              <option value="qss">Qualifying Surviving Spouse</option>
             </select>
           </div>
           <div>
@@ -828,7 +823,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
               </table>
             </div>
             <p className="text-xs text-gray-400 mt-2">
-              Calculations based on {TAX_YEAR} IRS brackets and official state tax tables. {filing === "married" ? "Married filing jointly" : "Single filer"}, standard deduction applied. State tax is estimated — actual amounts vary by credits and deductions.
+              Calculations based on {TAX_YEAR} IRS brackets and official state tax tables. {FILING_STATUS_LABELS[filing]}, standard deduction applied. State tax is estimated — actual amounts vary by credits and deductions.
             </p>
           </section>
 
@@ -887,7 +882,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="font-bold text-gray-900 mb-1">Filing Assumptions</p>
                   <ul className="list-disc list-inside space-y-1 text-xs text-gray-500">
-                    <li>Filing status: {filing === "married" ? "Married Filing Jointly" : "Single filer"}</li>
+                    <li>Filing status: {FILING_STATUS_LABELS[filing]}</li>
                     <li>Federal standard deduction: ${tax.standardDeduction.toLocaleString()} ({TAX_YEAR}, IRS Rev. Proc. 2025-32)</li>
                     <li>No additional credits, itemized deductions, or pre-tax contributions assumed</li>
                     <li>Social Security wage base: $184,500 ({TAX_YEAR}, SSA COLA 2026 announcement)</li>
@@ -1012,7 +1007,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
           {/* Federal Tax Brackets */}
           <section>
             <h2 className="text-xl font-bold text-gray-900 mb-4">
-              {TAX_YEAR} Federal Tax Brackets (Single Filer)
+              {TAX_YEAR} Federal Tax Brackets ({FILING_STATUS_LABELS[filing]})
             </h2>
             <div className="rounded-xl border border-gray-200 overflow-hidden shadow-sm">
               <table className="tax-table">
@@ -1020,19 +1015,21 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                   <tr><th>Bracket</th><th>Taxable Income Range</th><th>Rate</th></tr>
                 </thead>
                 <tbody>
-                  {BRACKET_LABELS.map((label, i) => {
-                    const bracketMin = FEDERAL_BRACKETS_2026[i].min;
-                    const bracketRate = FEDERAL_BRACKETS_2026[i].rate;
-                    const applies = tax.federalTaxable > bracketMin;
-                    const isTop = applies && bracketRate === tax.marginalRate;
+                  {FEDERAL_BRACKETS_BY_STATUS[filing].map((bracket, i) => {
+                    const next = FEDERAL_BRACKETS_BY_STATUS[filing][i + 1];
+                    const label = next
+                      ? `${fmt(bracket.min)} – ${fmt(next.min - 1)}`
+                      : `Over ${fmt(bracket.min)}`;
+                    const applies = tax.federalTaxable > bracket.min;
+                    const isTop = applies && bracket.rate === tax.marginalRate;
                     return (
                       <tr
-                        key={label}
+                        key={i}
                         className={isTop ? "bg-blue-50 font-semibold" : applies ? "" : "opacity-40"}
                       >
                         <td>{isTop && <span className="text-blue-700 text-xs font-bold">← Your top bracket</span>}</td>
                         <td>{label}</td>
-                        <td className="font-semibold">{Math.round(bracketRate * 100)}%</td>
+                        <td className="font-semibold">{Math.round(bracket.rate * 100)}%</td>
                       </tr>
                     );
                   })}

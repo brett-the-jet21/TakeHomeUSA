@@ -22,9 +22,72 @@ const FEDERAL_BRACKETS: { min: number; max: number; rate: number }[] = [
 // Exported for use in display tables
 export const FEDERAL_BRACKETS_2026 = FEDERAL_BRACKETS;
 
+// 2026 Married Filing Jointly / Qualifying Surviving Spouse brackets
+// Lower brackets are exactly 2× single; 37% threshold ≈ 1.2× single (marriage penalty zone)
+const FEDERAL_BRACKETS_MFJ: typeof FEDERAL_BRACKETS = [
+  { min: 0,       max: 24_800,   rate: 0.10 },
+  { min: 24_800,  max: 100_800,  rate: 0.12 },
+  { min: 100_800, max: 211_400,  rate: 0.22 },
+  { min: 211_400, max: 403_550,  rate: 0.24 },
+  { min: 403_550, max: 512_450,  rate: 0.32 },
+  { min: 512_450, max: 768_800,  rate: 0.35 },
+  { min: 768_800, max: Infinity, rate: 0.37 },
+];
+
+// 2026 Head of Household brackets
+// 10%/12% thresholds are ~4% above 2025; 22%+ are identical to single
+const FEDERAL_BRACKETS_HOH: typeof FEDERAL_BRACKETS = [
+  { min: 0,       max: 17_700,   rate: 0.10 },
+  { min: 17_700,  max: 67_450,   rate: 0.12 },
+  { min: 67_450,  max: 105_700,  rate: 0.22 },
+  { min: 105_700, max: 201_775,  rate: 0.24 },
+  { min: 201_775, max: 256_225,  rate: 0.32 },
+  { min: 256_225, max: 640_600,  rate: 0.35 },
+  { min: 640_600, max: Infinity, rate: 0.37 },
+];
+
+// ─── Filing Status ────────────────────────────────────────────────────────────
+export type FilingStatus = "single" | "married" | "mfs" | "hoh" | "qss";
+
+export const FILING_STATUS_LABELS: Record<FilingStatus, string> = {
+  single:  "Single",
+  married: "Married Filing Jointly",
+  mfs:     "Married Filing Separately",
+  hoh:     "Head of Household",
+  qss:     "Qualifying Surviving Spouse",
+};
+
+// 2026 standard deductions by filing status (IRS Rev. Proc. 2025-32)
+const STANDARD_DEDUCTIONS: Record<FilingStatus, number> = {
+  single:  16_100,  // same as STANDARD_DEDUCTION_SINGLE
+  married: 32_200,  // same as STANDARD_DEDUCTION_MARRIED
+  mfs:     16_100,  // same as single
+  hoh:     24_150,  // 1.5× single (IRS Rev. Proc. 2025-32)
+  qss:     32_200,  // same as MFJ
+};
+
+// Additional 0.9% Medicare surtax threshold varies by filing status
+const ADDL_MEDICARE_THRESHOLDS: Record<FilingStatus, number> = {
+  single:  200_000,
+  married: 250_000,
+  mfs:     125_000,  // half of MFJ per IRS
+  hoh:     200_000,  // same as single
+  qss:     250_000,  // same as MFJ
+};
+
+// Bracket set to use per filing status
+// MFS uses single brackets; QSS uses MFJ brackets
+export const FEDERAL_BRACKETS_BY_STATUS: Record<FilingStatus, typeof FEDERAL_BRACKETS> = {
+  single:  FEDERAL_BRACKETS,
+  married: FEDERAL_BRACKETS_MFJ,
+  mfs:     FEDERAL_BRACKETS,
+  hoh:     FEDERAL_BRACKETS_HOH,
+  qss:     FEDERAL_BRACKETS_MFJ,
+};
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface CalcOptions {
-  filingStatus?: "single" | "married";
+  filingStatus?: FilingStatus;
   contribution401k?: number;
   /** Annual Section 125 health insurance premium — reduces federal, FICA, and state taxable income */
   healthInsurance?: number;
@@ -63,11 +126,12 @@ export interface TaxResult {
 }
 
 // ─── Federal Tax Calculator ───────────────────────────────────────────────────
-function calcFederal(taxable: number): { tax: number; marginalRate: number } {
+function calcFederal(taxable: number, status: FilingStatus): { tax: number; marginalRate: number } {
   if (taxable <= 0) return { tax: 0, marginalRate: 0.10 };
+  const brackets = FEDERAL_BRACKETS_BY_STATUS[status];
   let tax = 0;
   let marginalRate = 0.10;
-  for (const b of FEDERAL_BRACKETS) {
+  for (const b of brackets) {
     if (taxable <= b.min) break;
     tax += (Math.min(taxable, b.max) - b.min) * b.rate;
     marginalRate = b.rate;
@@ -83,7 +147,7 @@ import { calcCityTax } from "./cities";
 
 export function calculateTax(stateConfig: StateTaxConfig, gross: number, options: CalcOptions = {}): TaxResult {
   const { filingStatus = "single", contribution401k = 0, healthInsurance = 0, hsa = 0, cityConfig, mortgageInterest = 0, charitable = 0 } = options;
-  const stdDeduction = filingStatus === "married" ? STANDARD_DEDUCTION_MARRIED : STANDARD_DEDUCTION_SINGLE;
+  const stdDeduction = STANDARD_DEDUCTIONS[filingStatus];
 
   // Itemized deductions: use the greater of standard or itemized total
   const itemizedTotal = Math.max(0, mortgageInterest) + Math.max(0, charitable);
@@ -100,13 +164,13 @@ export function calculateTax(stateConfig: StateTaxConfig, gross: number, options
   const ficaWages = Math.max(0, gross - healthInsPreTax - hsaPreTax);
   const socialSecurity = Math.min(ficaWages, SS_WAGE_BASE) * 0.062;
   const medicare = ficaWages * 0.0145;
-  const additionalMedicare = Math.max(0, ficaWages - ADDL_MEDICARE_THRESHOLD) * 0.009;
+  const additionalMedicare = Math.max(0, ficaWages - ADDL_MEDICARE_THRESHOLDS[filingStatus]) * 0.009;
   const ficaTotal = socialSecurity + medicare + additionalMedicare;
 
   // Federal + state taxable income is reduced by all pre-tax deductions
   const allPreTax = preTax401k + healthInsPreTax + hsaPreTax;
   const federalTaxable = Math.max(0, gross - deductionApplied - allPreTax);
-  const { tax: federalTax, marginalRate } = calcFederal(federalTaxable);
+  const { tax: federalTax, marginalRate } = calcFederal(federalTaxable, filingStatus);
 
   const adjustedGross = Math.max(0, gross - allPreTax);
 
@@ -147,7 +211,7 @@ export function calculateTax(stateConfig: StateTaxConfig, gross: number, options
 // ─── Texas Tax Calculator (No State Income Tax) ───────────────────────────────
 export function calculateTexasTax(gross: number): TaxResult {
   const federalTaxable = Math.max(0, gross - STANDARD_DEDUCTION_SINGLE);
-  const { tax: federalTax, marginalRate } = calcFederal(federalTaxable);
+  const { tax: federalTax, marginalRate } = calcFederal(federalTaxable, "single");
 
   const socialSecurity = Math.min(gross, SS_WAGE_BASE) * 0.062;
   const medicare = gross * 0.0145;

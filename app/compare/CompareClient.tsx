@@ -3,7 +3,8 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { ALL_STATE_CONFIGS, STATE_BY_SLUG } from "@/lib/states";
-import { calculateTax, fmt, pct, TAX_YEAR } from "@/lib/tax";
+import { calculateTax, fmt, pct, TAX_YEAR, FILING_STATUS_LABELS } from "@/lib/tax";
+import type { FilingStatus } from "@/lib/tax";
 
 const COMPARE_SALARIES = [50_000, 75_000, 100_000, 125_000, 150_000, 200_000];
 
@@ -20,9 +21,12 @@ const SLOT_BG     = ["bg-blue-50", "bg-red-50", "bg-emerald-50"];
 const SLOT_LABEL  = ["text-blue-700", "text-red-700", "text-emerald-700"];
 const SLOT_DOT    = ["bg-blue-500", "bg-red-500", "bg-emerald-500"];
 
-const FILING_OPTIONS: { value: "single" | "married"; label: string }[] = [
+const FILING_OPTIONS: { value: FilingStatus; label: string }[] = [
   { value: "single",  label: "Single" },
   { value: "married", label: "Married Filing Jointly" },
+  { value: "mfs",     label: "Married Filing Separately" },
+  { value: "hoh",     label: "Head of Household" },
+  { value: "qss",     label: "Qualifying Surviving Spouse" },
 ];
 
 // Snap a salary to the nearest pre-generated page amount (mirrors getStateSalaryAmounts)
@@ -39,7 +43,7 @@ function snapSalaryForLink(sal: number, stateSlug: string): number {
 
 export default function CompareClient() {
   const [states, setStates] = useState<string[]>(["texas", "california", "new-york"]);
-  const [filing, setFiling] = useState<"single" | "married">("single");
+  const [filing, setFiling] = useState<FilingStatus>("single");
   const [salaryInput, setSalaryInput] = useState("100,000");
   const [debouncedSalary, setDebouncedSalary] = useState(100_000);
 
@@ -145,7 +149,7 @@ export default function CompareClient() {
             </label>
             <select
               value={filing}
-              onChange={(e) => setFiling(e.target.value as "single" | "married")}
+              onChange={(e) => setFiling(e.target.value as FilingStatus)}
               className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
             >
               {FILING_OPTIONS.map((o) => (
@@ -274,7 +278,7 @@ export default function CompareClient() {
       <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm mb-8">
         <div className="px-6 py-4 border-b border-gray-100">
           <h2 className="font-extrabold text-gray-900">Full Take-Home Comparison — All Salary Levels</h2>
-          <p className="text-sm text-gray-500 mt-0.5">{TAX_YEAR} · {filing === "married" ? "Married filing jointly" : "Single filer"} · Standard deduction</p>
+          <p className="text-sm text-gray-500 mt-0.5">{TAX_YEAR} · {FILING_STATUS_LABELS[filing]} · Standard deduction</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
