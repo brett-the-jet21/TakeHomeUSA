@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { ALL_STATE_CONFIGS, STATE_BY_SLUG } from "@/lib/states";
 import { calculateTax, fmt, pct, TAX_YEAR } from "@/lib/tax";
@@ -28,7 +28,22 @@ const FILING_OPTIONS: { value: "single" | "married"; label: string }[] = [
 export default function CompareClient() {
   const [states, setStates] = useState<string[]>(["texas", "california", "new-york"]);
   const [filing, setFiling] = useState<"single" | "married">("single");
-  const [focusSalary, setFocusSalary] = useState(100_000);
+  const [salaryInput, setSalaryInput] = useState("100,000");
+  const [debouncedSalary, setDebouncedSalary] = useState(100_000);
+
+  // 300ms debounce on salary input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const n = Number(salaryInput.replace(/[^\d]/g, ""));
+      if (n >= 1_000) setDebouncedSalary(n);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [salaryInput]);
+
+  function applyPreset(sal: number) {
+    setSalaryInput(sal.toLocaleString("en-US"));
+    setDebouncedSalary(sal); // immediate, no debounce delay
+  }
 
   const numSlots = 3;
 
@@ -40,7 +55,7 @@ export default function CompareClient() {
     });
   }
 
-  // For each state slug, compute results for all salary levels
+  // For each state slug, compute results for all preset salary levels (full table)
   const results = useMemo(() =>
     states.map((slug) => {
       const cfg = STATE_BY_SLUG.get(slug);
@@ -52,10 +67,20 @@ export default function CompareClient() {
     [states, filing]
   );
 
-  // For the bar chart, get take-home at focusSalary
-  const focusIdx = COMPARE_SALARIES.indexOf(focusSalary);
-  const focusResults = results.map((r) => r?.[focusIdx] ?? null);
+  // For the bar chart, compute results at debouncedSalary for each selected state
+  const focusResults = useMemo(() =>
+    states.map((slug) => {
+      const cfg = STATE_BY_SLUG.get(slug);
+      if (!cfg) return null;
+      return calculateTax(cfg, debouncedSalary, { filingStatus: filing });
+    }),
+    [states, filing, debouncedSalary]
+  );
+
   const maxTakeHome = Math.max(...focusResults.map((r) => r?.takeHome ?? 0));
+
+  const salaryNum = Number(salaryInput.replace(/[^\d]/g, ""));
+  const activePreset = COMPARE_SALARIES.includes(salaryNum) ? salaryNum : null;
 
   const activeCfgs = states.map((s) => STATE_BY_SLUG.get(s));
 
@@ -76,7 +101,7 @@ export default function CompareClient() {
       </div>
 
       {/* Controls */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-8 shadow-sm">
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-8 shadow-sm compare-card-pad">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* State selectors */}
           {Array.from({ length: numSlots }).map((_, i) => (
@@ -120,17 +145,38 @@ export default function CompareClient() {
         <p className="text-xs text-gray-400 mt-3">★ = no state income tax</p>
       </div>
 
-      {/* Bar Chart — focus salary selector + bars */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-8 shadow-sm">
-        <div className="flex flex-wrap items-center gap-3 mb-6">
-          <h2 className="font-extrabold text-gray-900 text-lg mr-2">Take-Home at Salary:</h2>
+      {/* Bar Chart — salary input + preset shortcuts + bars */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-8 shadow-sm compare-card-pad">
+        <div className="mb-6">
+          <h2 className="font-extrabold text-gray-900 text-lg mb-3">Take-Home at Salary:</h2>
+
+          {/* Custom salary input */}
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+            Annual Salary
+          </label>
+          <div className="relative inline-block mb-3">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl font-bold">$</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={salaryInput}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/[^\d]/g, "");
+                setSalaryInput(raw ? Number(raw).toLocaleString("en-US") : "");
+              }}
+              placeholder="100,000"
+              className="border-2 border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-xl font-bold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all w-48"
+            />
+          </div>
+
+          {/* Preset shortcuts */}
           <div className="flex flex-wrap gap-2">
             {COMPARE_SALARIES.map((sal) => (
               <button
                 key={sal}
-                onClick={() => setFocusSalary(sal)}
+                onClick={() => applyPreset(sal)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                  sal === focusSalary
+                  sal === activePreset
                     ? "bg-blue-700 text-white shadow-sm"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
@@ -168,7 +214,7 @@ export default function CompareClient() {
                   >
                     {barPct > 25 && (
                       <span className="text-white text-xs font-bold">
-                        {pct(res.takeHome / focusSalary)} kept
+                        {pct(res.takeHome / debouncedSalary)} kept
                       </span>
                     )}
                   </div>
@@ -190,7 +236,7 @@ export default function CompareClient() {
         {focusResults[0] && focusResults[1] && (
           <div className="mt-6 pt-5 border-t border-gray-100">
             <p className="text-sm text-gray-500">
-              At ${focusSalary.toLocaleString()} salary:{" "}
+              At ${debouncedSalary.toLocaleString()} salary:{" "}
               {focusResults.map((res, i) => {
                 if (i === 0 || !res || !focusResults[0]) return null;
                 const diff = focusResults[0].takeHome - res.takeHome;
@@ -239,13 +285,13 @@ export default function CompareClient() {
               {COMPARE_SALARIES.map((sal, rowIdx) => (
                 <tr
                   key={sal}
-                  className={`border-b border-gray-100 ${sal === focusSalary ? "bg-blue-50" : rowIdx % 2 === 0 ? "" : "bg-gray-50/50"}`}
-                  onClick={() => setFocusSalary(sal)}
+                  className={`border-b border-gray-100 ${sal === salaryNum ? "bg-blue-50" : rowIdx % 2 === 0 ? "" : "bg-gray-50/50"}`}
+                  onClick={() => applyPreset(sal)}
                   style={{ cursor: "pointer" }}
                 >
                   <td className="px-5 py-3 font-semibold text-gray-900">
                     ${sal.toLocaleString()}
-                    {sal === focusSalary && (
+                    {sal === salaryNum && (
                       <span className="ml-2 text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">Selected</span>
                     )}
                   </td>
@@ -270,14 +316,14 @@ export default function CompareClient() {
       {/* Detailed Breakdown for Focus Salary */}
       <div className="mb-8">
         <h2 className="text-xl font-extrabold text-gray-900 mb-4">
-          Detailed Breakdown at ${focusSalary.toLocaleString()}
+          Detailed Breakdown at ${debouncedSalary.toLocaleString()}
         </h2>
         <div className="grid sm:grid-cols-3 gap-4">
           {focusResults.map((res, i) => {
             const cfg = activeCfgs[i];
             if (!cfg || !res) return null;
             return (
-              <div key={i} className={`rounded-2xl border-2 p-5 ${SLOT_BORDER[i]} ${SLOT_BG[i]}`}>
+              <div key={i} className={`rounded-2xl border-2 p-5 compare-card-pad ${SLOT_BORDER[i]} ${SLOT_BG[i]}`}>
                 <div className="flex items-center gap-2 mb-4">
                   <span className={`w-3 h-3 rounded-full ${SLOT_DOT[i]}`} />
                   <h3 className={`font-extrabold text-base ${SLOT_LABEL[i]}`}>{cfg.name}</h3>
@@ -316,7 +362,7 @@ export default function CompareClient() {
                 </div>
                 <div className="mt-4">
                   <Link
-                    href={`/salary/${focusSalary}-salary-after-tax-${cfg.slug}`}
+                    href={`/salary/${debouncedSalary}-salary-after-tax-${cfg.slug}`}
                     className={`block text-center text-xs font-bold py-2 rounded-xl transition-colors text-white`}
                     style={{ backgroundColor: SLOT_COLORS[i] }}
                   >
@@ -330,7 +376,7 @@ export default function CompareClient() {
       </div>
 
       {/* FAQ */}
-      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-8">
+      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-8 compare-card-pad">
         <h2 className="text-xl font-extrabold text-gray-900 mb-5">Frequently Asked Questions</h2>
         <div className="space-y-4">
           {[

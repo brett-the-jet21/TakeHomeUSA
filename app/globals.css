@@ -138,4 +138,33 @@ body {
   footer .container-page > div {
     grid-template-columns: 1fr;
   }
+
+  /* ── Spacing consistency fixes ───────────────────────────────────────────── */
+
+  /* 1. 16px horizontal page padding (was 1.25rem / 20px) */
+  .container-page {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* 2. Cap large section top-margins at 24px */
+  .container-page[class~="mt-14"],
+  .container-page[class~="mt-10"] {
+    margin-top: 1.5rem !important;
+  }
+
+  /* 3. 24px between section cards (removes excess mb-8 / 32px gap) */
+  .container-page > .mb-8 {
+    margin-bottom: 1.5rem !important;
+  }
+
+  /* 4. 8px gap between label text and input (was 6px via mb-1.5) */
+  label > span.block {
+    margin-bottom: 0.5rem !important;
+  }
+
+  /* 5. Compare page cards: 16px internal padding on mobile */
+  .compare-card-pad {
+    padding: 1rem !important;
+  }
 }
