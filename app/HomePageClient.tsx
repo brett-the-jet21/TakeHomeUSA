@@ -714,7 +714,7 @@ export default function HomePageClient() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="salary-showcase-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {SHOWCASE_AMOUNTS.map((amount) => {
             const tax = calculateTax(cfg, amount);
             const badge = SHOWCASE_BADGES[amount];

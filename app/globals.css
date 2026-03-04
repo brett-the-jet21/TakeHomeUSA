@@ -168,4 +168,18 @@ body {
   .compare-card-pad {
     padding: 1rem !important;
   }
+
+  /* Issue 3 + 5: Form inputs and selects — 44px tap target, no overflow */
+  input[type="text"],
+  input[type="number"],
+  select {
+    min-height: 44px;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  /* Issue 4: Salary showcase cards — single column on mobile */
+  .salary-showcase-grid {
+    grid-template-columns: 1fr !important;
+  }
 }

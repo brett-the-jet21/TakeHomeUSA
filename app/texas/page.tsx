@@ -230,6 +230,7 @@ export default function TexasPage() {
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
+            <div className="overflow-x-auto">
             <table className="tax-table">
               <thead>
                 <tr>
@@ -262,6 +263,7 @@ export default function TexasPage() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       </section>

@@ -294,6 +294,7 @@ export default async function StatePage({ params }: { params: Params }) {
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
+            <div className="overflow-x-auto">
             <table className="tax-table">
               <thead>
                 <tr>
@@ -332,6 +333,7 @@ export default async function StatePage({ params }: { params: Params }) {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* Comparison vs. Texas for taxed states */}
