@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import Link from "next/link";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { TAX_YEAR } from "@/lib/tax";
 import MobileNav from "./components/MobileNav";
+import Logo from "./components/Logo";
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["700", "800"],
+  variable: "--font-plus-jakarta",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -68,7 +77,7 @@ const POPULAR_TAXED_NAV = [
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={plusJakarta.variable}>
       <head />
       <body className="flex flex-col min-h-screen bg-white">
         <script
@@ -101,12 +110,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="container-page flex items-center justify-between h-14">
 
             {/* Logo */}
-            <Link
-              href="/"
-              className="flex items-center gap-1.5 font-extrabold text-gray-900 text-lg hover:text-blue-700 transition-colors"
-            >
-              <span className="text-blue-700 text-xl">$</span>
-              <span>TakeHomeUSA</span>
+            <Link href="/" aria-label="TakeHomeUSA — Home">
+              <Logo variant="light" size="md" />
             </Link>
 
             {/* Nav */}
@@ -202,9 +207,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
             {/* Brand */}
             <div className="sm:col-span-2 lg:col-span-1">
-              <Link href="/" className="flex items-center gap-1.5 text-white font-extrabold text-lg mb-3 hover:text-blue-400 transition-colors">
-                <span className="text-blue-400 text-xl">$</span>
-                <span>TakeHomeUSA</span>
+              <Link href="/" className="inline-block mb-3" aria-label="TakeHomeUSA — Home">
+                <Logo variant="dark" size="md" />
               </Link>
               <p className="text-sm leading-relaxed mb-4">
                 Free, accurate salary after-tax calculators for all 50 US states.
