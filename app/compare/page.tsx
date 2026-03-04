@@ -5,8 +5,8 @@ import { TAX_YEAR } from "@/lib/tax";
 import CompareClient from "./CompareClient";
 
 export const metadata: Metadata = {
-  title: `State Income Tax Comparison Tool ${TAX_YEAR} — Compare Take-Home Pay | TakeHomeUSA`,
-  description: `Compare take-home pay across US states side by side. See exactly how much more you keep in Texas vs California, New York vs Florida, and any other combination. ${TAX_YEAR} federal + state tax brackets.`,
+  title: `Compare Take-Home Pay by State — ${TAX_YEAR} Tax Calculator`,
+  description: `Texas vs California on $100K: you keep $7,420 more in Texas. Compare take-home pay across any US states side by side. Free ${TAX_YEAR} calculator, all 50 states.`,
   alternates: { canonical: "https://www.takehomeusa.com/compare" },
   openGraph: {
     title: `State Income Tax Comparison — ${TAX_YEAR} | TakeHomeUSA`,

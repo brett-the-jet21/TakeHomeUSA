@@ -5,8 +5,8 @@ import { TAX_YEAR } from "@/lib/tax";
 import HomePageClient from "./HomePageClient";
 
 export const metadata: Metadata = {
-  title: `Salary After Tax Calculator ${TAX_YEAR} — All 50 States, Free`,
-  description: `See your exact take-home pay for any salary in all 50 US states. $100K in Texas → $79,180/yr. $100K in Florida → $79,180/yr. $100K in New York → $68,915/yr. Powered by ${TAX_YEAR} IRS tax brackets. Instant, free, no signup.`,
+  title: `Salary After Tax Calculator ${TAX_YEAR} — See Your Exact Take-Home Pay`,
+  description: `$100K in Texas → $79,180/yr. $100K in California → $71,760/yr. $100K in New York → $68,915/yr. See your exact take-home pay for any salary in all 50 states. Free, instant, ${TAX_YEAR}.`,
   alternates: { canonical: "https://www.takehomeusa.com/" },
   openGraph: {
     title: `Salary After Tax Calculator ${TAX_YEAR} — All 50 States`,

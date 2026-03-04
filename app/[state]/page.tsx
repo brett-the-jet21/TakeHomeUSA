@@ -34,11 +34,11 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
   const title = noTax
     ? `${name} Salary Calculator ${TAX_YEAR} — $0 State Tax | Free`
-    : `${name} Salary After Tax ${TAX_YEAR} — Up to ${topRateDisplay} State Tax`;
+    : `${name} Salary Calculator ${TAX_YEAR} — $100K → $${take100} Take-Home`;
 
   const description = noTax
-    ? `${name} has NO state income tax. $100K salary → $${take100}/yr ($${mo100}/mo). $75K → $${take75}/yr. Real ${TAX_YEAR} brackets, instant, free.`
-    : `$100K salary in ${name} → $${take100}/yr take-home ($${mo100}/mo). $75K → $${take75}/yr. State tax up to ${topRateDisplay}. Free ${TAX_YEAR} breakdown.`;
+    ? `$100K in ${name} → $${take100}/yr take-home ($${mo100}/mo). $0 state income tax — you keep more. $75K → $${take75}/yr. Free ${TAX_YEAR} calculator, instant.`
+    : `$100K in ${name} → $${take100}/yr take-home ($${mo100}/mo). $75K → $${take75}/yr. Enter any salary for your exact federal + ${name} tax breakdown. Free ${TAX_YEAR}.`;
 
   return {
     title,
