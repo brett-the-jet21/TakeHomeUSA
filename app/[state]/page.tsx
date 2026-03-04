@@ -203,21 +203,21 @@ export default async function StatePage({ params }: { params: Params }) {
             </p>
 
             {/* Key stat cards */}
-            <div className="grid grid-cols-3 gap-4 max-w-lg">
-              <div className="bg-white/10 rounded-xl p-4 text-center backdrop-blur-sm">
-                <p className={`text-2xl font-black ${noTax ? "text-green-400" : "text-white"}`}>
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 max-w-lg">
+              <div className="bg-white/10 rounded-xl p-2 sm:p-4 text-center backdrop-blur-sm">
+                <p className={`text-xl sm:text-2xl font-black ${noTax ? "text-green-400" : "text-white"}`}>
                   {noTax ? "$0" : topRateDisplay}
                 </p>
                 <p className="text-xs text-white/60 mt-1">
                   {noTax ? "State Income Tax" : "Top State Rate"}
                 </p>
               </div>
-              <div className="bg-white/10 rounded-xl p-4 text-center backdrop-blur-sm">
-                <p className="text-2xl font-black text-white">7.65%</p>
+              <div className="bg-white/10 rounded-xl p-2 sm:p-4 text-center backdrop-blur-sm">
+                <p className="text-xl sm:text-2xl font-black text-white">7.65%</p>
                 <p className="text-xs text-white/60 mt-1">FICA (SS + Medicare)</p>
               </div>
-              <div className="bg-white/10 rounded-xl p-4 text-center backdrop-blur-sm">
-                <p className="text-2xl font-black text-white/70">10–37%</p>
+              <div className="bg-white/10 rounded-xl p-2 sm:p-4 text-center backdrop-blur-sm">
+                <p className="text-xl sm:text-2xl font-black text-white/70">10–37%</p>
                 <p className="text-xs text-white/60 mt-1">Federal Rate</p>
               </div>
             </div>

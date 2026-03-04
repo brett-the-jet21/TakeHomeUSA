@@ -166,7 +166,7 @@ export default function CompareClient() {
           <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
             Annual Salary
           </label>
-          <div className="relative inline-block mb-3">
+          <div className="relative block sm:inline-block mb-3">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl font-bold">$</span>
             <input
               type="text"
@@ -177,7 +177,7 @@ export default function CompareClient() {
                 setSalaryInput(raw ? Number(raw).toLocaleString("en-US") : "");
               }}
               placeholder="100,000"
-              className="border-2 border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-xl font-bold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all w-48"
+              className="border-2 border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-xl font-bold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all w-full sm:w-48"
             />
           </div>
 

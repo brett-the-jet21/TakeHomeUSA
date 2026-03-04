@@ -366,7 +366,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
             </div>
             <button
               onClick={handleNavigate}
-              className="bg-blue-700 text-white px-4 py-3.5 rounded-xl font-bold hover:bg-blue-800 transition-colors whitespace-nowrap text-sm shadow-sm"
+              className="bg-blue-700 text-white px-2 sm:px-4 py-3.5 rounded-xl font-bold hover:bg-blue-800 transition-colors whitespace-nowrap text-sm shadow-sm"
             >
               Full Page →
             </button>
@@ -1130,7 +1130,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                       <div>
                         <p className="font-bold text-gray-900 mb-1">Monthly Budget Snapshot</p>
                         <div className="text-sm text-gray-600 space-y-0.5">
-                          <div className="flex gap-6">
+                          <div className="flex flex-wrap gap-x-4 gap-y-1">
                             <span>Take-home: <strong className="text-gray-900">{fmt(monthlyTakeHome)}/mo</strong></span>
                             <span>Est. basics: <strong className="text-gray-900">${totalMonthly.toLocaleString()}/mo</strong></span>
                           </div>

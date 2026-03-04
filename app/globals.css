@@ -91,9 +91,10 @@ body {
 /* ALL rules below are mobile-only. Zero effect on desktop (≥768px).        */
 @media (max-width: 767px) {
 
-  /* Prevent any element from causing horizontal page scroll */
-  body {
+  /* Belt + suspenders: prevent horizontal scroll on both root elements */
+  html, body {
     overflow-x: hidden;
+    max-width: 100vw;
   }
 
   /* Nav tap targets — every link/button in the header must be ≥ 44px tall   */
