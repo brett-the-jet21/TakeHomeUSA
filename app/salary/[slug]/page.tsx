@@ -51,17 +51,17 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const effRate = (tax.effectiveTotalRate * 100).toFixed(1);
 
   const desc = noTax
-    ? `$${amtFmt} in ${stateName}: $${takeFmt}/yr take-home ($${moFmt}/mo · $${biFmt} biweekly). No state income tax. Effective rate: ${effRate}%. Free ${TAX_YEAR} breakdown.`
-    : `$${amtFmt} in ${stateName}: $${takeFmt}/yr take-home ($${moFmt}/mo · $${biFmt} biweekly). Effective rate: ${effRate}%. Free ${TAX_YEAR} federal + state breakdown.`;
+    ? `$${amtFmt} salary in ${stateName} = $${moFmt}/month take-home (${TAX_YEAR}). Effective rate: ${effRate}%. No state income tax. Full federal tax breakdown — free & instant.`
+    : `$${amtFmt} salary in ${stateName} = $${moFmt}/month take-home (${TAX_YEAR}). Effective rate: ${effRate}%. Full federal + state tax breakdown — free & instant.`;
 
   return {
-    title: `$${amtFmt} Salary After Tax in ${stateName} — $${takeFmt} Take-Home (${TAX_YEAR})`,
+    title: `$${amtFmt} a Year After Taxes in ${stateName} = $${moFmt}/mo (${TAX_YEAR})`,
     description: desc,
     alternates: {
       canonical: `https://www.takehomeusa.com/salary/${slug}`,
     },
     openGraph: {
-      title: `$${amtFmt} After Tax in ${stateName} — $${takeFmt} Take-Home | TakeHomeUSA`,
+      title: `$${amtFmt} a Year After Taxes in ${stateName} = $${moFmt}/mo | TakeHomeUSA`,
       description: desc,
       url: `https://www.takehomeusa.com/salary/${slug}`,
       siteName: "TakeHomeUSA",
@@ -69,8 +69,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     },
     twitter: {
       card: "summary",
-      title: `$${amtFmt} After Tax in ${stateName}: $${takeFmt}/yr`,
-      description: `$${moFmt}/mo · $${biFmt} biweekly. ${noTax ? `${stateName} has no state income tax.` : `State tax up to ${topRateDisplay}.`} Free ${TAX_YEAR} breakdown.`,
+      title: `$${amtFmt} a Year After Taxes in ${stateName} = $${moFmt}/mo`,
+      description: desc,
     },
   };
 }
