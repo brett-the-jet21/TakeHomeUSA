@@ -58,7 +58,7 @@ export default function AboutPage() {
             </div>
             <div className="flex gap-3">
               <span className="font-bold text-blue-700 w-6">2.</span>
-              <span>Subtract the <strong>standard deduction</strong> ($14,600 for 2024 single filers)</span>
+              <span>Subtract the <strong>standard deduction</strong> (${TAX_YEAR === 2026 ? "16,100" : "14,600"} for {TAX_YEAR} single filers)</span>
             </div>
             <div className="flex gap-3">
               <span className="font-bold text-blue-700 w-6">3.</span>
@@ -78,30 +78,24 @@ export default function AboutPage() {
             </div>
           </div>
           <p className="text-sm text-gray-500 mt-3">
-            All calculations are performed server-side for speed and never
-            stored. We assume single filer status and standard deduction.
+            All calculations use {TAX_YEAR} IRS data and are never stored. Results default to single filer
+            status and standard deduction — adjustable in the calculator.
           </p>
         </section>
 
         <section>
           <h2 className="text-xl font-bold text-gray-900 mb-3">Our Coverage</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="bg-green-50 border border-green-200 rounded-xl p-5">
-              <p className="font-bold text-green-800 mb-1">✓ Live Now</p>
-              <ul className="text-sm text-green-700 space-y-1">
-                <li>Texas — All salaries $20K–$500K</li>
-                <li>481 pre-built salary pages</li>
-                <li>Real-time calculator for any amount</li>
-              </ul>
-            </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
-              <p className="font-bold text-blue-800 mb-1">🔜 Coming Soon</p>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>Florida, Nevada, Wyoming</li>
-                <li>California, New York, Illinois</li>
-                <li>All 50 states — 2025</li>
-              </ul>
-            </div>
+          <div className="bg-green-50 border border-green-200 rounded-xl p-5">
+            <p className="font-bold text-green-800 mb-3">✓ Live — All 50 States</p>
+            <ul className="text-sm text-green-700 space-y-1.5">
+              <li>All 50 US states — federal + state tax calculations</li>
+              <li>Texas: all salaries $20K–$500K in $1K steps (481 pages)</li>
+              <li>All other states: $20K–$500K in $5K steps + extended range to $2M</li>
+              <li>Hourly wage pages: $10–$100/hr × all 50 states</li>
+              <li>All-states salary comparison for popular salary amounts</li>
+              <li>City/local taxes: NYC, Philadelphia, Detroit, Baltimore, and more</li>
+              <li>Real-time calculator: any salary, any state, instantly</li>
+            </ul>
           </div>
         </section>
 

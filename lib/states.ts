@@ -64,6 +64,8 @@ export function getStateSalaryAmounts(stateSlug: string): number[] {
   for (let a = 20_000; a <= 500_000; a += step) amounts.push(a);
   // Extended range for high earners: $50K steps up to $2M
   for (let a = 550_000; a <= 2_000_000; a += 50_000) amounts.push(a);
+  // State-specific popular amounts outside the standard $5K grid
+  if (stateSlug === "california") amounts.push(96_000);
   return amounts;
 }
 
