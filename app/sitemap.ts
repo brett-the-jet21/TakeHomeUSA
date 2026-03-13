@@ -13,6 +13,23 @@ const HOURLY_RATES = [
 // High-priority hourly rates (min wage adjacent and round numbers)
 const HIGH_PRIORITY_HOURLY = new Set([10, 12, 15, 20, 25, 30, 40, 50, 75, 100]);
 
+// Monthly amounts generated in /monthly/[slug]/page.tsx
+const MONTHLY_AMOUNTS = [
+  1_000, 1_500, 2_000, 2_500, 3_000, 3_500, 4_000, 4_500,
+  5_000, 5_500, 6_000, 6_500, 7_000, 7_500, 8_000, 8_500,
+  9_000, 9_500, 10_000, 11_000, 12_000, 13_000, 14_000, 15_000,
+  16_000, 17_000, 18_000, 19_000, 20_000,
+];
+const HIGH_PRIORITY_MONTHLY = new Set([3_000, 4_000, 5_000, 6_000, 7_000, 8_000, 10_000]);
+
+// Top states for state-vs-state comparison pages
+const COMPARE_STATE_SLUGS = [
+  "texas", "california", "florida", "new-york", "washington",
+  "nevada", "illinois", "georgia", "north-carolina", "ohio",
+  "michigan", "arizona", "colorado", "virginia", "tennessee",
+  "pennsylvania", "new-jersey", "massachusetts", "north-dakota", "wyoming",
+];
+
 // Salary amounts generated in /after-tax/[slug]/page.tsx
 const AFTER_TAX_AMOUNTS = [
   20_000, 25_000, 30_000, 35_000, 40_000, 45_000, 50_000,
@@ -110,5 +127,37 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: HIGH_PRIORITY_AFTER_TAX.has(amount) ? 0.85 : 0.70,
   }));
 
-  return [...corePages, ...stateHubPages, ...salaryPages, ...hourlyPages, ...afterTaxPages];
+  // ── Monthly salary pages ───────────────────────────────────────────────────
+  const monthlyPages: MetadataRoute.Sitemap = [];
+  for (const monthly of MONTHLY_AMOUNTS) {
+    const isHigh = HIGH_PRIORITY_MONTHLY.has(monthly);
+    for (const cfg of ALL_STATE_CONFIGS) {
+      monthlyPages.push({
+        url: `${BASE}/monthly/${monthly}-a-month-after-tax-${cfg.slug}`,
+        lastModified: LAST_MODIFIED,
+        changeFrequency: "monthly",
+        priority: isHigh ? (cfg.noTax ? 0.78 : 0.72) : 0.60,
+      });
+    }
+  }
+
+  // ── State-vs-state comparison pages ──────────────────────────────────────
+  const comparePages: MetadataRoute.Sitemap = [];
+  for (const s1 of COMPARE_STATE_SLUGS) {
+    for (const s2 of COMPARE_STATE_SLUGS) {
+      if (s1 !== s2) {
+        const isHighValuePair =
+          (s1 === "texas" || s1 === "california" || s1 === "florida" || s1 === "new-york") &&
+          (s2 === "texas" || s2 === "california" || s2 === "florida" || s2 === "new-york");
+        comparePages.push({
+          url: `${BASE}/compare/${s1}-vs-${s2}`,
+          lastModified: LAST_MODIFIED,
+          changeFrequency: "monthly",
+          priority: isHighValuePair ? 0.82 : 0.68,
+        });
+      }
+    }
+  }
+
+  return [...corePages, ...stateHubPages, ...salaryPages, ...hourlyPages, ...afterTaxPages, ...monthlyPages, ...comparePages];
 }
