@@ -69,6 +69,23 @@ export function getStateSalaryAmounts(stateSlug: string): number[] {
   return amounts;
 }
 
+/**
+ * Snap any user-entered salary to the nearest pre-generated slug amount
+ * so router.push() never lands on a 404.
+ *
+ * Grid rules (matching generateStaticParams in /salary/[slug]/page.tsx):
+ *  ≤ $500K  — $1K steps (Texas) or $5K steps (all other states), min $20K
+ *  > $500K  — $50K steps ($550K … $2M), cap at $2M
+ */
+export function snapToSalaryGrid(amount: number, stateSlug: string): number {
+  if (amount <= 500_000) {
+    const step = stateSlug === "texas" ? 1_000 : 5_000;
+    return Math.max(20_000, Math.round(amount / step) * step);
+  }
+  // > $500K: snap to nearest $50K, cap at $2M
+  return Math.min(2_000_000, Math.round(amount / 50_000) * 50_000);
+}
+
 // ─── All 50 State Configurations (2026) ──────────────────────────────────────
 export const ALL_STATE_CONFIGS: StateTaxConfig[] = [
 

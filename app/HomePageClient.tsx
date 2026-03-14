@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ALL_STATE_CONFIGS, STATE_BY_SLUG } from "@/lib/states";
+import { ALL_STATE_CONFIGS, STATE_BY_SLUG, snapToSalaryGrid } from "@/lib/states";
 import { calculateTax, fmt, pct, TAX_YEAR, POPULAR_SALARIES, FILING_STATUS_LABELS } from "@/lib/tax";
 import type { FilingStatus } from "@/lib/tax";
 import { CITIES_BY_STATE, CITY_BY_SLUG } from "@/lib/cities";
@@ -218,13 +218,7 @@ export default function HomePageClient() {
   function handleCalculate() {
     const raw = grossAnnual;
     if (!raw || raw < 1_000) return;
-    let targetAmount: number;
-    if (raw <= 500_000) {
-      const step = stateSlug === "texas" ? 1_000 : 5_000;
-      targetAmount = Math.max(20_000, Math.round(raw / step) * step);
-    } else {
-      targetAmount = raw;
-    }
+    const targetAmount = snapToSalaryGrid(raw, stateSlug);
     const params = new URLSearchParams();
     if (filing !== "single") params.set("filing", filing);
     if (contrib401kNum > 0) params.set("401k", String(contrib401kNum));
