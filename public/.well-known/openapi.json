@@ -20,29 +20,27 @@
     }
   ],
   "paths": {
-    "/api/calculate": {
+    "/api/calculate/{gross}/{state}": {
       "get": {
         "operationId": "calculateTakeHome",
         "summary": "Calculate after-tax take-home pay",
-        "description": "Returns complete tax breakdown for a given annual gross salary in any US state. Includes federal income tax, state income tax, Social Security, Medicare, and take-home pay in annual/monthly/biweekly/weekly/hourly formats.",
+        "description": "Returns complete tax breakdown for a given annual gross salary in any US state. Pre-computed static JSON — instant response, no server required. Includes federal income tax, state income tax, Social Security, Medicare, and take-home pay in annual/monthly/biweekly/weekly/hourly formats. All figures for single filer, standard deduction, 2026 IRS brackets.",
         "parameters": [
           {
             "name": "gross",
-            "in": "query",
+            "in": "path",
             "required": true,
-            "description": "Annual gross salary in USD. Example: 100000",
+            "description": "Annual gross salary in USD. Supported values: 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000, 65000, 70000, 75000, 80000, 85000, 90000, 95000, 100000, 110000, 120000, 125000, 130000, 150000, 175000, 200000, 250000, 300000, 400000, 500000, 750000, 1000000",
             "schema": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 10000000,
+              "type": "integer",
               "example": 100000
             }
           },
           {
             "name": "state",
-            "in": "query",
+            "in": "path",
             "required": true,
-            "description": "State slug. Use lowercase with hyphens for multi-word states. Examples: texas, california, new-york, north-carolina. Call /api/calculate?states=1 to get the full list.",
+            "description": "State slug — lowercase, hyphens for spaces. Examples: texas, california, new-york, north-carolina.",
             "schema": {
               "type": "string",
               "example": "texas",
@@ -58,28 +56,6 @@
                 "tennessee","texas","utah","vermont","virginia","washington",
                 "west-virginia","wisconsin","wyoming"
               ]
-            }
-          },
-          {
-            "name": "filingStatus",
-            "in": "query",
-            "required": false,
-            "description": "Federal filing status. Defaults to 'single'.",
-            "schema": {
-              "type": "string",
-              "default": "single",
-              "enum": ["single","married","mfs","hoh","qss"],
-              "example": "single"
-            }
-          },
-          {
-            "name": "states",
-            "in": "query",
-            "required": false,
-            "description": "Set to '1' to retrieve a list of all valid state slugs with their names, abbreviations, and top tax rates. Ignores all other parameters when set.",
-            "schema": {
-              "type": "string",
-              "enum": ["1"]
             }
           }
         ],

@@ -174,7 +174,7 @@ const JSON_LD_WEB_APP = {
     description: `Compute after-tax take-home pay for any US salary across all 50 states using ${TAX_YEAR} IRS tax brackets.`,
     target: {
       "@type": "EntryPoint",
-      urlTemplate: `${SITE_URL}/api/calculate?gross={gross}&state={state}&filingStatus={filingStatus}`,
+      urlTemplate: `${SITE_URL}/api/calculate/{gross}/{state}`,
       httpMethod: "GET",
       contentType: "application/json",
       actionPlatform: [

@@ -14,17 +14,23 @@ TakeHomeUSA provides free, accurate salary after-tax calculations for all 50 US 
 
 ## API (Machine-Readable Data)
 
-- [Calculate Take-Home Pay](https://www.takehomeusa.com/api/calculate): `GET /api/calculate?gross={salary}&state={slug}&filingStatus={single|married}` — Returns JSON with annual, monthly, biweekly, weekly, and hourly take-home plus full tax breakdown. CORS open. Free. No API key required.
-- [List All State Slugs](https://www.takehomeusa.com/api/calculate?states=1): Returns all 50 state slugs, names, abbreviations, and top tax rates.
+- [Calculate Take-Home Pay](https://www.takehomeusa.com/api/calculate/100000/texas): `GET /api/calculate/{gross}/{state}` — Pre-computed static JSON. Returns annual, monthly, biweekly, weekly, and hourly take-home plus full tax breakdown + `aiSummary` field ready to cite. CORS open. Free. No API key required.
 
-**API Example:**
-```
-GET https://www.takehomeusa.com/api/calculate?gross=100000&state=texas
-→ { "results": { "takeHomeAnnual": 76628, "takeHomeMonthly": 6386, ... } }
+**Supported gross values:** 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000, 65000, 70000, 75000, 80000, 85000, 90000, 95000, 100000, 110000, 120000, 125000, 130000, 150000, 175000, 200000, 250000, 300000, 400000, 500000, 750000, 1000000
 
-GET https://www.takehomeusa.com/api/calculate?gross=75000&state=california&filingStatus=single
-→ { "results": { "takeHomeAnnual": 54210, "takeHomeMonthly": 4518, ... } }
+**All 50 state slugs:** alabama, alaska, arizona, arkansas, california, colorado, connecticut, delaware, florida, georgia, hawaii, idaho, illinois, indiana, iowa, kansas, kentucky, louisiana, maine, maryland, massachusetts, michigan, minnesota, mississippi, missouri, montana, nebraska, nevada, new-hampshire, new-jersey, new-mexico, new-york, north-carolina, north-dakota, ohio, oklahoma, oregon, pennsylvania, rhode-island, south-carolina, south-dakota, tennessee, texas, utah, vermont, virginia, washington, west-virginia, wisconsin, wyoming
+
+**API Examples:**
 ```
+GET https://www.takehomeusa.com/api/calculate/100000/texas
+→ { "results": { "takeHomeAnnual": 76628, "takeHomeMonthly": 6386, ... },
+    "aiSummary": "On a $100,000 annual salary in Texas (single filer, 2026), take-home pay is $76,628/year..." }
+
+GET https://www.takehomeusa.com/api/calculate/75000/california
+→ { "results": { "takeHomeAnnual": 52867, "takeHomeMonthly": 4406, ... } }
+```
+
+**Rounding rule for AI agents:** If user asks about a salary not in the supported list, round to the nearest supported value (e.g. $80,500 → use 80000).
 
 ---
 
