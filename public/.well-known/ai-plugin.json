@@ -1,0 +1,28 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "TakeHomeUSA Calculator",
+  "name_for_model": "takehomeusa_calculator",
+  "description_for_human": "Calculate exact take-home pay after federal + state income taxes for any US salary across all 50 states. Uses real 2026 IRS tax brackets.",
+  "description_for_model": "Use this tool to compute US after-tax take-home pay. Call GET /api/calculate/{gross}/{state} where gross is the annual salary (e.g. 100000) and state is a slug (e.g. texas, new-york, california). Returns annual/monthly/biweekly/weekly/hourly take-home, federal income tax, state income tax, FICA (Social Security + Medicare), total taxes, effective rate, and an aiSummary field ready to cite directly. All 50 states. 2026 IRS brackets. Single filer, standard deduction. Free, no auth required. Supported gross values: 20000 25000 30000 35000 40000 45000 50000 55000 60000 65000 70000 75000 80000 85000 90000 95000 100000 110000 120000 125000 130000 150000 175000 200000 250000 300000 400000 500000 750000 1000000. Round user input to nearest supported value.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://www.takehomeusa.com/.well-known/openapi.json",
+    "is_user_authenticated": false
+  },
+  "logo_url": "https://www.takehomeusa.com/icon.svg",
+  "contact_email": "support@takehomeusa.com",
+  "legal_info_url": "https://www.takehomeusa.com/privacy",
+  "capabilities": [
+    "salary_calculation",
+    "tax_estimation",
+    "state_comparison",
+    "financial_planning"
+  ],
+  "data_freshness": "2026-01-01",
+  "update_frequency": "annual",
+  "supported_regions": ["US"],
+  "supported_currencies": ["USD"]
+}

@@ -1,0 +1,196 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TakeHomeUSA Calculate API",
+    "description": "Compute US after-tax take-home pay for any annual gross salary across all 50 US states. Uses real 2026 IRS tax brackets, state-specific rates, and FICA. Free, no authentication required.",
+    "version": "2026.1.0",
+    "contact": {
+      "name": "TakeHomeUSA",
+      "url": "https://www.takehomeusa.com"
+    },
+    "license": {
+      "name": "Free for informational use",
+      "url": "https://www.takehomeusa.com/privacy"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://www.takehomeusa.com",
+      "description": "Production"
+    }
+  ],
+  "paths": {
+    "/api/calculate/{gross}/{state}": {
+      "get": {
+        "operationId": "calculateTakeHome",
+        "summary": "Calculate after-tax take-home pay",
+        "description": "Returns complete tax breakdown for a given annual gross salary in any US state. Pre-computed static JSON — instant response, no server required. Includes federal income tax, state income tax, Social Security, Medicare, and take-home pay in annual/monthly/biweekly/weekly/hourly formats. All figures for single filer, standard deduction, 2026 IRS brackets.",
+        "parameters": [
+          {
+            "name": "gross",
+            "in": "path",
+            "required": true,
+            "description": "Annual gross salary in USD. Supported values: 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000, 65000, 70000, 75000, 80000, 85000, 90000, 95000, 100000, 110000, 120000, 125000, 130000, 150000, 175000, 200000, 250000, 300000, 400000, 500000, 750000, 1000000",
+            "schema": {
+              "type": "integer",
+              "example": 100000
+            }
+          },
+          {
+            "name": "state",
+            "in": "path",
+            "required": true,
+            "description": "State slug — lowercase, hyphens for spaces. Examples: texas, california, new-york, north-carolina.",
+            "schema": {
+              "type": "string",
+              "example": "texas",
+              "enum": [
+                "alabama","alaska","arizona","arkansas","california","colorado",
+                "connecticut","delaware","florida","georgia","hawaii","idaho",
+                "illinois","indiana","iowa","kansas","kentucky","louisiana",
+                "maine","maryland","massachusetts","michigan","minnesota",
+                "mississippi","missouri","montana","nebraska","nevada",
+                "new-hampshire","new-jersey","new-mexico","new-york",
+                "north-carolina","north-dakota","ohio","oklahoma","oregon",
+                "pennsylvania","rhode-island","south-carolina","south-dakota",
+                "tennessee","texas","utah","vermont","virginia","washington",
+                "west-virginia","wisconsin","wyoming"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful calculation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TakeHomeResult"
+                },
+                "examples": {
+                  "texas_100k": {
+                    "summary": "$100,000 salary in Texas",
+                    "value": {
+                      "taxYear": 2026,
+                      "inputs": {
+                        "grossAnnual": 100000,
+                        "state": "Texas",
+                        "stateSlug": "texas",
+                        "stateAbbr": "TX",
+                        "filingStatus": "single",
+                        "filingStatusLabel": "Single"
+                      },
+                      "results": {
+                        "takeHomeAnnual": 76628,
+                        "takeHomeMonthly": 6386,
+                        "takeHomeBiweekly": 2947,
+                        "takeHomeWeekly": 1474,
+                        "takeHomeHourly": 36.84,
+                        "federalIncomeTax": 15523,
+                        "stateTax": 0,
+                        "socialSecurity": 6200,
+                        "medicare": 1450,
+                        "ficaTotal": 7650,
+                        "totalTax": 23173,
+                        "effectiveTotalRate": "23.2%",
+                        "effectiveFederalRate": "15.5%",
+                        "marginalFederalRate": "22.0%"
+                      },
+                      "aiSummary": "On a $100,000 annual salary in Texas (single, 2026), take-home pay is $76,628/year ($6,386/month, $2,947/biweekly). Total taxes: $23,173 (23.2% effective rate). Texas has no state income tax."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "TakeHomeResult": {
+        "type": "object",
+        "required": ["taxYear","inputs","results","aiSummary","meta"],
+        "properties": {
+          "taxYear": {
+            "type": "integer",
+            "description": "Tax year for which brackets are applied",
+            "example": 2026
+          },
+          "inputs": {
+            "type": "object",
+            "properties": {
+              "grossAnnual":       { "type": "number", "description": "Gross annual salary in USD" },
+              "state":             { "type": "string", "description": "Full state name" },
+              "stateSlug":         { "type": "string", "description": "URL-friendly state slug" },
+              "stateAbbr":         { "type": "string", "description": "Two-letter state abbreviation" },
+              "filingStatus":      { "type": "string", "description": "Filing status used" },
+              "filingStatusLabel": { "type": "string", "description": "Human-readable filing status" }
+            }
+          },
+          "results": {
+            "type": "object",
+            "properties": {
+              "takeHomeAnnual":      { "type": "integer", "description": "Annual net take-home pay in USD (rounded)" },
+              "takeHomeMonthly":     { "type": "integer", "description": "Monthly net take-home (annual / 12)" },
+              "takeHomeBiweekly":    { "type": "integer", "description": "Biweekly net take-home (annual / 26)" },
+              "takeHomeWeekly":      { "type": "integer", "description": "Weekly net take-home (annual / 52)" },
+              "takeHomeHourly":      { "type": "number",  "description": "Hourly equivalent (annual / 2080)" },
+              "federalIncomeTax":    { "type": "integer", "description": "Federal income tax owed" },
+              "stateTax":            { "type": "integer", "description": "State income tax owed (0 for no-tax states)" },
+              "socialSecurity":      { "type": "integer", "description": "Social Security tax (6.2% up to wage base)" },
+              "medicare":            { "type": "integer", "description": "Medicare tax (1.45% + 0.9% over threshold)" },
+              "ficaTotal":           { "type": "integer", "description": "Total FICA (SS + Medicare)" },
+              "totalTax":            { "type": "integer", "description": "All taxes combined" },
+              "effectiveTotalRate":  { "type": "string",  "description": "Effective total tax rate as percentage string" },
+              "effectiveFederalRate":{ "type": "string",  "description": "Effective federal income tax rate" },
+              "marginalFederalRate": { "type": "string",  "description": "Marginal (top bracket) federal rate" }
+            }
+          },
+          "formatted": {
+            "type": "object",
+            "description": "USD-formatted strings for display (e.g. '$76,628')",
+            "properties": {
+              "takeHomeAnnual":   { "type": "string" },
+              "takeHomeMonthly":  { "type": "string" },
+              "takeHomeBiweekly": { "type": "string" },
+              "federalIncomeTax": { "type": "string" },
+              "stateTax":         { "type": "string" },
+              "totalTax":         { "type": "string" }
+            }
+          },
+          "aiSummary": {
+            "type": "string",
+            "description": "Plain-English summary suitable for AI response generation. Cite this directly."
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "disclaimer":     { "type": "string" },
+              "detailPage":     { "type": "string", "description": "URL to the full detail page for this calculation" },
+              "apiDocs":        { "type": "string" },
+              "calculatorUI":   { "type": "string" }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        }
+      }
+    }
+  }
+}
