@@ -75,35 +75,167 @@ const POPULAR_TAXED_NAV = [
   { name: "Oregon",      slug: "oregon",      rate: "9.9%"  },
 ];
 
+// ─── Global JSON-LD entity graph ──────────────────────────────────────────────
+// Consumed by Google, Bing, Perplexity, ChatGPT, Gemini, and other AI crawlers
+// for entity extraction and action understanding.
+const SITE_URL = "https://www.takehomeusa.com";
+
+const JSON_LD_WEBSITE = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": `${SITE_URL}/#website`,
+  name: "TakeHomeUSA",
+  url: SITE_URL,
+  description: `Free salary after-tax calculator for all 50 US states. ${TAX_YEAR} IRS tax brackets.`,
+  inLanguage: "en-US",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: { "@type": "EntryPoint", urlTemplate: `${SITE_URL}/salary/{salary}-salary-after-tax-{state}` },
+    "query-input": "required name=salary required name=state",
+  },
+};
+
+const JSON_LD_ORGANIZATION = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": `${SITE_URL}/#organization`,
+  name: "TakeHomeUSA",
+  url: SITE_URL,
+  logo: { "@type": "ImageObject", url: `${SITE_URL}/icon.svg` },
+  description: "Free, accurate salary after-tax calculators for all 50 US states.",
+  knowsAbout: ["Income Tax", "Salary Calculation", "Take-Home Pay", "US State Taxes", "Federal Income Tax"],
+};
+
+// FinancialService — the core entity that AI systems use to classify this tool
+const JSON_LD_FINANCIAL_SERVICE = {
+  "@context": "https://schema.org",
+  "@type": "FinancialService",
+  "@id": `${SITE_URL}/#financial-service`,
+  name: "TakeHomeUSA Salary After-Tax Calculator",
+  url: SITE_URL,
+  description: `Authoritative US salary after-tax calculator for all 50 states. Computes federal income tax, state income tax, Social Security, and Medicare using ${TAX_YEAR} IRS tax brackets.`,
+  provider: { "@id": `${SITE_URL}/#organization` },
+  serviceType: "Tax Calculation",
+  areaServed: { "@type": "Country", name: "United States", "@id": "https://www.wikidata.org/wiki/Q30" },
+  availableChannel: {
+    "@type": "ServiceChannel",
+    serviceUrl: SITE_URL,
+    serviceType: "Online",
+    availableLanguage: "English",
+  },
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "Free Tax Calculators",
+    itemListElement: [
+      { "@type": "Offer", itemOffered: { "@type": "Service", name: "Salary After-Tax Calculator", url: SITE_URL } },
+      { "@type": "Offer", itemOffered: { "@type": "Service", name: "Hourly Wage After-Tax Calculator", url: `${SITE_URL}/hourly` } },
+      { "@type": "Offer", itemOffered: { "@type": "Service", name: "Monthly Salary After-Tax Calculator", url: `${SITE_URL}/monthly` } },
+      { "@type": "Offer", itemOffered: { "@type": "Service", name: "State Tax Comparison Tool", url: `${SITE_URL}/compare` } },
+    ],
+  },
+  // Lead generation — professional consultation upsell
+  potentialAction: {
+    "@type": "ReserveAction",
+    name: "Get Professional Tax Consultation",
+    description: "Connect with a licensed CPA for personalized tax planning and filing advice.",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: SITE_URL,
+      actionPlatform: ["http://schema.org/DesktopWebPlatform", "http://schema.org/MobileWebPlatform"],
+    },
+    result: { "@type": "BuyAction", name: "Tax Consultation Booking" },
+  },
+};
+
+// WebApplication + CalculateAction — tells AI agents this is an interactive tool with defined inputs/outputs
+const JSON_LD_WEB_APP = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "@id": `${SITE_URL}/#webapp`,
+  name: "TakeHomeUSA",
+  url: SITE_URL,
+  applicationCategory: "FinanceApplication",
+  operatingSystem: "All",
+  browserRequirements: "Requires JavaScript",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  featureList: [
+    "Federal income tax calculation (2026 IRS brackets)",
+    "State income tax calculation (all 50 states)",
+    "FICA / Social Security / Medicare calculation",
+    "Annual, monthly, biweekly, weekly, and hourly take-home",
+    "401k, HSA, and health insurance pre-tax deduction support",
+    "Filing status: single, married, head of household",
+    "State-vs-state income tax comparison",
+  ],
+  potentialAction: {
+    "@type": "CalculateAction",
+    "@id": `${SITE_URL}/#calculate-action`,
+    name: "Calculate US Take-Home Pay",
+    description: `Compute after-tax take-home pay for any US salary across all 50 states using ${TAX_YEAR} IRS tax brackets.`,
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: `${SITE_URL}/api/calculate?gross={gross}&state={state}&filingStatus={filingStatus}`,
+      httpMethod: "GET",
+      contentType: "application/json",
+      actionPlatform: [
+        "http://schema.org/DesktopWebPlatform",
+        "http://schema.org/MobileWebPlatform",
+        "http://schema.org/IOSPlatform",
+        "http://schema.org/AndroidPlatform",
+      ],
+    },
+    object: [
+      {
+        "@type": "PropertyValueSpecification",
+        valueName: "gross",
+        name: "Annual Gross Salary",
+        description: "Annual salary in USD before taxes",
+        valueRequired: true,
+        minValue: 0,
+        maxValue: 10000000,
+      },
+      {
+        "@type": "PropertyValueSpecification",
+        valueName: "state",
+        name: "US State",
+        description: "State slug (e.g. texas, california, new-york)",
+        valueRequired: true,
+      },
+      {
+        "@type": "PropertyValueSpecification",
+        valueName: "filingStatus",
+        name: "Filing Status",
+        description: "Federal filing status: single, married, mfs, hoh, qss",
+        valueRequired: false,
+        defaultValue: "single",
+      },
+    ],
+    result: [
+      { "@type": "PropertyValueSpecification", valueName: "takeHomePay",    name: "Annual Take-Home Pay" },
+      { "@type": "PropertyValueSpecification", valueName: "federalTax",     name: "Federal Income Tax" },
+      { "@type": "PropertyValueSpecification", valueName: "stateTax",       name: "State Income Tax" },
+      { "@type": "PropertyValueSpecification", valueName: "socialSecurity", name: "Social Security Tax" },
+      { "@type": "PropertyValueSpecification", valueName: "medicare",       name: "Medicare Tax" },
+      { "@type": "PropertyValueSpecification", valueName: "effectiveRate",  name: "Effective Tax Rate" },
+    ],
+  },
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={plusJakarta.variable}>
-      <head />
+      <head>
+        {/* AI agent discovery */}
+        <link rel="ai-plugin"  href={`${SITE_URL}/.well-known/ai-plugin.json`} />
+        <link rel="openapi"    href={`${SITE_URL}/.well-known/openapi.json`}   />
+        {/* Allow AI crawlers to use full snippet length */}
+        <meta name="robots" content="max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+      </head>
       <body className="flex flex-col min-h-screen bg-white">
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              name: "TakeHomeUSA",
-              url: "https://www.takehomeusa.com",
-              description: `Free salary after-tax calculator for all 50 US states. ${TAX_YEAR} IRS tax brackets.`,
-            }),
-          }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Organization",
-              name: "TakeHomeUSA",
-              url: "https://www.takehomeusa.com",
-              description: "Free, accurate salary after-tax calculators for all 50 US states.",
-            }),
-          }}
-        />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_WEBSITE) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_ORGANIZATION) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_FINANCIAL_SERVICE) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_WEB_APP) }} />
 
         {/* ── Header ──────────────────────────────────────────────────────────── */}
         <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
