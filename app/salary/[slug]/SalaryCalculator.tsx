@@ -6,6 +6,7 @@ import Link from "next/link";
 import { calculateTax, fmt, pct, TAX_YEAR, FILING_STATUS_LABELS, FEDERAL_BRACKETS_BY_STATUS } from "@/lib/tax";
 import type { FilingStatus } from "@/lib/tax";
 import type { StateTaxConfig } from "@/lib/states";
+import { snapToSalaryGrid } from "@/lib/states";
 import { CITIES_BY_STATE, CITY_BY_SLUG } from "@/lib/cities";
 import { COST_OF_LIVING, COL_TIER_LABEL, COL_TIER_COLOR } from "@/lib/costOfLiving";
 
@@ -181,7 +182,8 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
         if (charitableNum > 0) params.set("charity", String(charitableNum));
       }
       const qs = params.toString();
-      router.push(`/salary/${n}-salary-after-tax-${stateConfig.slug}${qs ? `?${qs}` : ""}`);
+      const snapped = snapToSalaryGrid(n, stateConfig.slug);
+      router.push(`/salary/${snapped}-salary-after-tax-${stateConfig.slug}${qs ? `?${qs}` : ""}`);
     }
   }, [inputMode, salaryInput, hourlyRate, hoursPerWeek, router, stateConfig.slug, filing, contribution401k, healthInsNum, hsaNum, citySlug, useItemized, mortgageNum, charitableNum]);
 
@@ -989,7 +991,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                             </p>
                           )}
                           <Link
-                            href={`/salary/${Math.round(amount / 1_000) * 1_000}-salary-after-tax-${slug}`}
+                            href={`/salary/${snapToSalaryGrid(amount, slug)}-salary-after-tax-${slug}`}
                             className="text-xs text-blue-600 hover:underline mt-1 block"
                           >
                             See {s} breakdown →
@@ -1071,7 +1073,7 @@ export default function SalaryCalculator({ initialAmount, stateConfig }: Props) 
                       <div className="text-right">
                         <p className="font-black text-lg tabular-nums text-gray-800">{fmt(estTakeHome)}</p>
                         <Link
-                          href={`/salary/${Math.round(amount / 1_000) * 1_000}-salary-after-tax-${slug}`}
+                          href={`/salary/${snapToSalaryGrid(amount, slug)}-salary-after-tax-${slug}`}
                           className="text-xs text-blue-600 hover:underline"
                         >
                           See breakdown →

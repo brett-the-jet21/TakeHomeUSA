@@ -7,20 +7,20 @@ import { ALL_STATE_CONFIGS, STATE_BY_SLUG } from "@/lib/states";
 import HomePageClient from "./HomePageClient";
 
 export const metadata: Metadata = {
-  title: `Salary After-Tax Calculator — How Much Do You Actually Keep?`,
-  description: `$100K in Texas → $79,180/yr. California → $71,760. New York → $68,915. Free ${TAX_YEAR} calculator for all 50 states — enter any salary, see your exact paycheck instantly.`,
+  title: { absolute: `Take-Home Pay Calculator — All 50 States | TakeHomeUSA` },
+  description: `See exactly what you keep after taxes on any salary. Free ${TAX_YEAR} calculator — all 50 states, full federal + state breakdown, monthly paycheck. No signup.`,
   alternates: { canonical: "https://www.takehomeusa.com/" },
   openGraph: {
-    title: `Salary After Tax Calculator ${TAX_YEAR} — All 50 States`,
-    description: `What do you actually take home? $100K in Texas → $79,180/yr. $100K in California → $71,760/yr. Free ${TAX_YEAR} salary after tax calculator for all 50 states.`,
+    title: `Take-Home Pay Calculator — All 50 States | TakeHomeUSA`,
+    description: `Enter any salary, pick a state — see your exact take-home pay instantly. Free ${TAX_YEAR} calculator for all 50 states. Full federal + state tax breakdown.`,
     url: "https://www.takehomeusa.com",
     siteName: "TakeHomeUSA",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: `Salary After Tax Calculator — All 50 States (${TAX_YEAR})`,
-    description: `$100K salary? Texas → $79,180/yr take-home. New York → $68,915/yr. Free calculator for all 50 states.`,
+    title: `Take-Home Pay Calculator — All 50 States | TakeHomeUSA`,
+    description: `Enter any salary, pick a state — see your exact take-home pay in seconds. Free ${TAX_YEAR} calculator for all 50 states. No signup.`,
   },
 };
 

@@ -56,10 +56,10 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const effRate = (tax.effectiveTotalRate * 100).toFixed(1);
   const moFmt = monthly.toLocaleString("en-US");
 
-  const title = `$${moFmt} a Month After Taxes in ${stateName} = $${netMonthly}/mo Net (${TAX_YEAR})`;
+  const title = `$${moFmt}/Month After Taxes in ${stateName} — $${netMonthly}/mo`;
   const desc = noTax
-    ? `$${moFmt}/month ($${(annualGross / 1000).toFixed(0)}K/year) in ${stateName} = $${netMonthly}/month take-home (${TAX_YEAR}). No state tax. Effective rate: ${effRate}%. Full breakdown.`
-    : `$${moFmt}/month ($${(annualGross / 1000).toFixed(0)}K/year) in ${stateName} = $${netMonthly}/month take-home (${TAX_YEAR}). Effective rate: ${effRate}%. Federal + state breakdown.`;
+    ? `$${moFmt}/month ($${(annualGross / 1000).toFixed(0)}K/year) in ${stateName} = $${netMonthly}/mo take-home (${TAX_YEAR}). No state income tax. Effective rate ${effRate}%. Free — instant, no signup.`
+    : `$${moFmt}/month ($${(annualGross / 1000).toFixed(0)}K/year) in ${stateName} = $${netMonthly}/mo take-home (${TAX_YEAR}). Effective rate ${effRate}%. Free — full federal + state breakdown, no signup.`;
 
   return {
     title,

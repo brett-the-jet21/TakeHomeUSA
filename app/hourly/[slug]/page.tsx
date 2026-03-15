@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const moFmt = Math.round(tax.takeHome / 12).toLocaleString("en-US");
   const effRate = (tax.effectiveTotalRate * 100).toFixed(1);
 
-  const title = `$${rate} an Hour After Taxes in ${stateName} = $${annualFmt}/yr (${TAX_YEAR})`;
+  const title = `$${rate}/hr After Taxes in ${stateName} — $${annualFmt}/yr`;
   const desc = noTax
     ? `$${rate}/hr in ${stateName} = $${annualFmt}/year ($${moFmt}/mo) after taxes (${TAX_YEAR}). No state income tax. Effective rate: ${effRate}%. Full federal breakdown.`
     : `$${rate}/hr in ${stateName} = $${annualFmt}/year ($${moFmt}/mo) after taxes (${TAX_YEAR}). Effective rate: ${effRate}%. Full federal + state tax breakdown — free & instant.`;

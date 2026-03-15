@@ -57,8 +57,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const winner = tax100k1.takeHome > tax100k2.takeHome ? state1 : state2;
   const loser = tax100k1.takeHome > tax100k2.takeHome ? state2 : state1;
 
-  const title = `${state1.name} vs ${state2.name} Income Tax — $${Math.round(diff / 100) * 100 < 1000 ? diff.toFixed(0) : `${(diff / 1000).toFixed(1)}K`} More Take-Home (${TAX_YEAR})`;
-  const desc = `On a $100K salary, ${winner.name} residents keep $${fmt(diff)} more than ${loser.name}. Full side-by-side take-home comparison for every salary level. ${TAX_YEAR} tax rates.`;
+  const title = `${state1.name} vs ${state2.name} Income Tax (${TAX_YEAR})`;
+  const desc = `On $100K, ${winner.name} keeps ${fmt(diff)} more than ${loser.name}. Side-by-side take-home comparison for all salary levels — ${TAX_YEAR} IRS tax rates, free.`;
 
   return {
     title,

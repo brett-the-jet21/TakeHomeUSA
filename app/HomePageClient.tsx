@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ALL_STATE_CONFIGS, STATE_BY_SLUG } from "@/lib/states";
+import { ALL_STATE_CONFIGS, STATE_BY_SLUG, snapToSalaryGrid } from "@/lib/states";
 import { calculateTax, fmt, pct, TAX_YEAR, POPULAR_SALARIES, FILING_STATUS_LABELS } from "@/lib/tax";
 import type { FilingStatus } from "@/lib/tax";
 import { CITIES_BY_STATE, CITY_BY_SLUG } from "@/lib/cities";
@@ -218,13 +218,7 @@ export default function HomePageClient() {
   function handleCalculate() {
     const raw = grossAnnual;
     if (!raw || raw < 1_000) return;
-    let targetAmount: number;
-    if (raw <= 500_000) {
-      const step = stateSlug === "texas" ? 1_000 : 5_000;
-      targetAmount = Math.max(20_000, Math.round(raw / step) * step);
-    } else {
-      targetAmount = raw;
-    }
+    const targetAmount = snapToSalaryGrid(raw, stateSlug);
     const params = new URLSearchParams();
     if (filing !== "single") params.set("filing", filing);
     if (contrib401kNum > 0) params.set("401k", String(contrib401kNum));
@@ -252,7 +246,7 @@ export default function HomePageClient() {
   return (
     <>
       {/* ── Authority Banner ──────────────────────────────────────────────────── */}
-      <div className="bg-blue-700 text-white text-center py-2 px-4 text-sm font-medium">
+      <div className="authority-banner bg-blue-700 text-white text-center py-2 px-4 text-sm font-medium">
         <span className="mr-2">✓</span>
         Updated for {TAX_YEAR} Federal &amp; State Tax Brackets — All 50 States
         <span className="mx-3 opacity-50">·</span>
@@ -261,7 +255,7 @@ export default function HomePageClient() {
 
       {/* ── Hero ──────────────────────────────────────────────────────────────── */}
       <section
-        className="relative overflow-hidden text-white"
+        className="hero-section relative overflow-hidden text-white"
         style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1d4ed8 100%)" }}
       >
         <div
@@ -278,7 +272,7 @@ export default function HomePageClient() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
 
             {/* Left copy */}
-            <div>
+            <div className="hero-copy">
               <div className="inline-flex items-center gap-2 bg-green-500/20 border border-green-400/30 text-green-300 text-xs font-bold px-4 py-1.5 rounded-full mb-6 uppercase tracking-wider">
                 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                 All 50 States · {TAX_YEAR} Tax Brackets
