@@ -183,3 +183,51 @@ body {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ── Landscape phone fix (viewport height ≤ 500px) ─────────────────────────
+   Phones in landscape (hotdog) mode have ~360-430px height. The sticky header
+   (56px) + authority banner (36px) + hero py-16 padding (128px) + hero copy
+   text push the calculator card ~500px below the fold — completely inaccessible
+   without heavy scrolling. This query compresses the chrome and hides non-
+   essential hero content so the calculator is visible immediately.
+────────────────────────────────────────────────────────────────────────────── */
+@media (max-height: 500px) and (orientation: landscape) {
+
+  /* ① Condense sticky header: h-14 (56px) → 40px, reclaims 16px of viewport */
+  header > .container-page {
+    height: 2.5rem;
+  }
+
+  /* ② Realign the mobile-nav dropdown to the condensed header bottom edge */
+  #mobile-nav-menu {
+    top: 2.5rem;
+  }
+
+  /* ③ Sync anchor-jump scroll offset to the condensed header height */
+  html {
+    scroll-padding-top: 2.5rem;
+  }
+
+  /* ④ Hide the authority banner — saves ~36px, not critical for calculator use */
+  .authority-banner {
+    display: none;
+  }
+
+  /* ⑤ Collapse hero section vertical padding: py-16 (64px each) → 12px each */
+  .hero-section > .container-page {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  /* ⑥ Hide the hero copy (h1, paragraph, feature bullets) so the calculator
+        card appears at the visible top of the page in landscape orientation.
+        The copy is decorative context — the card is the action element. */
+  .hero-copy {
+    display: none;
+  }
+
+  /* ⑦ Remove grid gap that remains when the copy column is hidden */
+  .hero-section .grid {
+    gap: 0;
+  }
+}

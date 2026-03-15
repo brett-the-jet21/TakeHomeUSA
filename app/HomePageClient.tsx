@@ -246,7 +246,7 @@ export default function HomePageClient() {
   return (
     <>
       {/* ── Authority Banner ──────────────────────────────────────────────────── */}
-      <div className="bg-blue-700 text-white text-center py-2 px-4 text-sm font-medium">
+      <div className="authority-banner bg-blue-700 text-white text-center py-2 px-4 text-sm font-medium">
         <span className="mr-2">✓</span>
         Updated for {TAX_YEAR} Federal &amp; State Tax Brackets — All 50 States
         <span className="mx-3 opacity-50">·</span>
@@ -255,7 +255,7 @@ export default function HomePageClient() {
 
       {/* ── Hero ──────────────────────────────────────────────────────────────── */}
       <section
-        className="relative overflow-hidden text-white"
+        className="hero-section relative overflow-hidden text-white"
         style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1d4ed8 100%)" }}
       >
         <div
@@ -272,7 +272,7 @@ export default function HomePageClient() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
 
             {/* Left copy */}
-            <div>
+            <div className="hero-copy">
               <div className="inline-flex items-center gap-2 bg-green-500/20 border border-green-400/30 text-green-300 text-xs font-bold px-4 py-1.5 rounded-full mb-6 uppercase tracking-wider">
                 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                 All 50 States · {TAX_YEAR} Tax Brackets
