@@ -54,7 +54,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     : `$${amtFmt} salary in ${stateName} = $${moFmt}/month take-home (${TAX_YEAR}). Effective rate: ${effRate}%. Full federal + state tax breakdown — free & instant.`;
 
   return {
-    title: `$${amtFmt} a Year After Taxes in ${stateName} = $${moFmt}/mo (${TAX_YEAR})`,
+    title: `$${amtFmt} After Taxes in ${stateName} — $${moFmt}/mo`,
     description: desc,
     alternates: {
       canonical: `https://www.takehomeusa.com/salary/${slug}`,

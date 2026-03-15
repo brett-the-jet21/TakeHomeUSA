@@ -33,12 +33,12 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const mo100   = Math.round(t100.takeHome / 12).toLocaleString("en-US");
 
   const title = noTax
-    ? `${name} Salary After Tax — $${take100} Take-Home on $100K (${TAX_YEAR})`
-    : `${name} Salary After Tax — $${take100} Take-Home on $100K (${TAX_YEAR})`;
+    ? `${name} After-Tax Pay — $0 State Tax (${TAX_YEAR})`
+    : `${name} Take-Home Pay — $${take100}/yr on $100K`;
 
   const description = noTax
-    ? `No state income tax: $100K in ${name} → $${take100}/yr ($${mo100}/mo). $75K → $${take75}/yr. Free ${TAX_YEAR} calculator — instant results, full federal breakdown.`
-    : `$100K in ${name} → $${take100}/yr ($${mo100}/mo). $75K → $${take75}/yr. Free ${TAX_YEAR} calculator — enter any salary for exact federal + ${name} tax breakdown.`;
+    ? `No state income tax: $100K in ${name} → $${take100}/yr ($${mo100}/mo). $75K → $${take75}/yr. Free ${TAX_YEAR} — full federal breakdown, no signup.`
+    : `$100K in ${name} → $${take100}/yr ($${mo100}/mo). $75K → $${take75}/yr. Free ${TAX_YEAR} — exact federal + ${name} state tax breakdown, no signup.`;
 
   return {
     title,

@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: "%s | TakeHomeUSA",
   },
   description:
-    `Free salary after-tax calculator for all 50 US states. See your exact take-home pay, federal and state tax breakdown, and monthly paycheck — powered by ${TAX_YEAR} IRS tax brackets.`,
+    `Free salary after-tax calculator for all 50 US states. Enter any salary, see your exact take-home pay in seconds — ${TAX_YEAR} IRS brackets. No signup needed.`,
   metadataBase: new URL("https://www.takehomeusa.com"),
   alternates: { canonical: "https://www.takehomeusa.com/" },
   keywords: [

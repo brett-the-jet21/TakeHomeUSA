@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const caFmt = Math.round(caTax.takeHome).toLocaleString("en-US");
 
   const title = `$${amtFmt} a Year After Taxes — All 50 States (${TAX_YEAR})`;
-  const desc = `How much is $${amtFmt} a year after taxes? Texas → $${texasFmt}/yr ($${texasMoFmt}/mo). California → $${caFmt}/yr. Compare all 50 states — ${TAX_YEAR} IRS brackets, free & instant.`;
+  const desc = `How much is $${amtFmt}/year after taxes? Texas → $${texasFmt}/yr ($${texasMoFmt}/mo). California → $${caFmt}/yr. All 50 states — ${TAX_YEAR} IRS brackets, free & instant.`;
 
   return {
     title,

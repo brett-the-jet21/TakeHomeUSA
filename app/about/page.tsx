@@ -5,9 +5,9 @@ import Link from "next/link";
 import { TAX_YEAR } from "@/lib/tax";
 
 export const metadata: Metadata = {
-  title: "About TakeHomeUSA — Free Salary After Tax Calculator",
+  title: "About TakeHomeUSA — Free US Salary Calculator",
   description:
-    "TakeHomeUSA is a free, accurate salary after-tax calculator for all 50 US states. Built to help workers understand their real take-home pay using real IRS tax data.",
+    `Free, accurate salary after-tax calculator for all 50 US states. Understand your exact take-home pay using real ${TAX_YEAR} IRS tax data. No signup required.`,
   alternates: { canonical: "https://www.takehomeusa.com/about" },
 };
 

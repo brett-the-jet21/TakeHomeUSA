@@ -4,8 +4,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | TakeHomeUSA",
-  description: "TakeHomeUSA privacy policy. We do not collect personal data or store salary information. Learn how we use cookies and third-party services like Google AdSense.",
+  title: { absolute: "Privacy Policy | TakeHomeUSA" },
+  description: "TakeHomeUSA privacy policy. We don't collect personal data or store salary info. Learn how we use cookies and third-party services like Google AdSense.",
   alternates: { canonical: "https://www.takehomeusa.com/privacy" },
 };
 
