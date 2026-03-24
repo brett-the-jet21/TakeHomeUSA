@@ -50,8 +50,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const effRate = (tax.effectiveTotalRate * 100).toFixed(1);
 
   const desc = noTax
-    ? `$${amtFmt} salary in ${stateName} = $${moFmt}/month take-home (${TAX_YEAR}). Effective rate: ${effRate}%. No state income tax. Full federal tax breakdown — free & instant.`
-    : `$${amtFmt} salary in ${stateName} = $${moFmt}/month take-home (${TAX_YEAR}). Effective rate: ${effRate}%. Full federal + state tax breakdown — free & instant.`;
+    ? `Earning $${amtFmt}/year in ${stateName}? Take-home = $${moFmt}/month (${TAX_YEAR}). Effective rate ${effRate}%. No state income tax — free full breakdown, instant, no signup.`
+    : `Earning $${amtFmt}/year in ${stateName}? Take-home = $${moFmt}/month (${TAX_YEAR}). Effective rate ${effRate}%. Full federal + state breakdown — free, instant, no signup.`;
 
   return {
     title: `$${amtFmt} After Taxes in ${stateName} — $${moFmt}/mo`,

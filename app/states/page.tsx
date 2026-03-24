@@ -6,9 +6,9 @@ import { STATES_DIRECTORY, ALL_STATE_CONFIGS } from "@/lib/states";
 import { TAX_YEAR } from "@/lib/tax";
 
 export const metadata: Metadata = {
-  title: `Salary After-Tax Calculator — All 50 US States`,
+  title: `State Paycheck Calculator ${TAX_YEAR} — All 50 States`,
   description:
-    `Free ${TAX_YEAR} salary calculator for all 50 US states. Enter any salary, see exact take-home pay — federal + state breakdown, monthly rates. No signup.`,
+    `Enter your salary, pick a state — see exactly what hits your bank account after all taxes. All 50 states — ${TAX_YEAR} IRS brackets, free, instant, no signup.`,
   alternates: { canonical: "https://www.takehomeusa.com/states" },
 };
 

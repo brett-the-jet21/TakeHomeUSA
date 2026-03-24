@@ -5,9 +5,9 @@ import Link from "next/link";
 import { calculateTexasTax, fmt, pct, TAX_YEAR } from "@/lib/tax";
 
 export const metadata: Metadata = {
-  title: `Texas Paycheck Calculator — No State Income Tax`,
+  title: `Texas Paycheck Calculator ${TAX_YEAR} — No State Tax`,
   description:
-    `Texas has no state income tax. $100K → $79,180/yr ($6,598/mo). $75K → $59,785/yr. Free ${TAX_YEAR} calculator — instant results, no signup.`,
+    `Enter your Texas salary — see what hits your bank account. $0 state tax: $100K → $79,180/yr ($6,598/mo). $75K → $59,785/yr. Free, instant, no signup.`,
   alternates: { canonical: "https://www.takehomeusa.com/texas" },
   openGraph: {
     title: `Texas Salary After Tax Calculator (${TAX_YEAR})`,

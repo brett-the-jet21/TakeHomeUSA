@@ -16,11 +16,11 @@ const plusJakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "TakeHomeUSA — Salary After Tax Calculator, All 50 States",
+    default: "Free Paycheck Calculator 2026 — All 50 States | TakeHomeUSA",
     template: "%s | TakeHomeUSA",
   },
   description:
-    `Free salary after-tax calculator for all 50 US states. Enter any salary, see your exact take-home pay in seconds — ${TAX_YEAR} IRS brackets. No signup needed.`,
+    `Enter any salary — see exactly what hits your bank account after federal, state & FICA taxes. All 50 states — ${TAX_YEAR} IRS brackets. Free, instant, no signup.`,
   metadataBase: new URL("https://www.takehomeusa.com"),
   alternates: { canonical: "https://www.takehomeusa.com/" },
   keywords: [
@@ -308,6 +308,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 className="px-3 py-1.5 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors hidden md:block"
               >
                 Compare
+              </Link>
+
+              <Link
+                href="/blog"
+                className="px-3 py-1.5 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors hidden md:block"
+              >
+                Blog
               </Link>
 
               <Link

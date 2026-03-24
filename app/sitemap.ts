@@ -141,6 +141,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }
   }
 
+  // ── Blog pages ────────────────────────────────────────────────────────────
+  const blogPages: MetadataRoute.Sitemap = [
+    { url: `${BASE}/blog`,                                          lastModified: LAST_MODIFIED, changeFrequency: "weekly",  priority: 0.80 },
+    { url: `${BASE}/blog/states-with-no-income-tax`,               lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.75 },
+    { url: `${BASE}/blog/federal-tax-brackets-2026`,               lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.75 },
+    { url: `${BASE}/blog/100k-salary-after-taxes-all-states`,      lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.75 },
+    { url: `${BASE}/blog/texas-vs-california-taxes-2026`,          lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.75 },
+  ];
+
   // ── State-vs-state comparison pages ──────────────────────────────────────
   const comparePages: MetadataRoute.Sitemap = [];
   for (const s1 of COMPARE_STATE_SLUGS) {
@@ -159,5 +168,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }
   }
 
-  return [...corePages, ...stateHubPages, ...salaryPages, ...hourlyPages, ...afterTaxPages, ...monthlyPages, ...comparePages];
+  return [...corePages, ...blogPages, ...stateHubPages, ...salaryPages, ...hourlyPages, ...afterTaxPages, ...monthlyPages, ...comparePages];
 }
