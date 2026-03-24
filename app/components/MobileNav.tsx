@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { href: "/",        label: "Calculator"     },
   { href: "/states",  label: "State Guides"   },
   { href: "/compare", label: "Compare States" },
+  { href: "/blog",    label: "Blog & Guides"  },
   { href: "/about",   label: "About"          },
 ];
 
