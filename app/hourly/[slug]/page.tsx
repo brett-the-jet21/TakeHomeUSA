@@ -61,8 +61,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
   const title = `$${rate}/hr After Taxes in ${stateName} — $${annualFmt}/yr`;
   const desc = noTax
-    ? `$${rate}/hr in ${stateName} = $${annualFmt}/year ($${moFmt}/mo) after taxes (${TAX_YEAR}). No state income tax. Effective rate: ${effRate}%. Full federal breakdown.`
-    : `$${rate}/hr in ${stateName} = $${annualFmt}/year ($${moFmt}/mo) after taxes (${TAX_YEAR}). Effective rate: ${effRate}%. Full federal + state tax breakdown — free & instant.`;
+    ? `Earning $${rate}/hr in ${stateName}? Take-home = $${annualFmt}/year ($${moFmt}/mo) in ${TAX_YEAR}. No state tax — effective rate ${effRate}%. Free, instant, no signup.`
+    : `Earning $${rate}/hr in ${stateName}? Take-home = $${annualFmt}/year ($${moFmt}/mo) in ${TAX_YEAR}. Effective rate ${effRate}%. Federal + state breakdown — free & instant.`;
 
   return {
     title,
