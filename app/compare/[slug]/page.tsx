@@ -58,7 +58,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const loser = tax100k1.takeHome > tax100k2.takeHome ? state2 : state1;
 
   const title = `${state1.name} vs ${state2.name} Income Tax (${TAX_YEAR})`;
-  const desc = `On $100K, ${winner.name} keeps ${fmt(diff)} more than ${loser.name}. Side-by-side take-home comparison for all salary levels — ${TAX_YEAR} IRS tax rates, free.`;
+  const desc = `Compare ${state1.name} vs ${state2.name} take-home pay (${TAX_YEAR}). ${winner.name} keeps ${fmt(diff)} more on $100K. $40K–$200K salary table — free, instant.`;
 
   return {
     title,
@@ -102,8 +102,8 @@ export default async function CompareSlugPage({ params }: { params: Params }) {
 
   const faqItems = [
     {
-      q: `How much more do you keep in ${state1.name} vs ${state2.name}?`,
-      a: `On a $100,000 salary, ${winner.name} residents keep ${fmt(absDiff100k)} more per year than ${loser.name} residents (${TAX_YEAR}). At $200,000 the gap grows to ${fmt(Math.abs(rows.find(r => r.gross === 200_000)!.diff))} per year.`,
+      q: `Which state has lower taxes, ${state1.name} or ${state2.name}?`,
+      a: `${winner.name} has lower income taxes than ${loser.name}. On a $100,000 salary (${TAX_YEAR}), ${winner.name} residents take home ${fmt(absDiff100k)} more per year. ${winner.name} top state rate: ${winner.noTax ? "0% (no state income tax)" : winner.topRateDisplay}; ${loser.name}: ${loser.noTax ? "0% (no state income tax)" : loser.topRateDisplay}. At $200K the gap grows to ${fmt(Math.abs(rows.find(r => r.gross === 200_000)!.diff))}/year.`,
     },
     {
       q: `What is the income tax rate in ${state1.name} vs ${state2.name}?`,
