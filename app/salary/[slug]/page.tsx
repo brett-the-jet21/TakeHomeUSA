@@ -47,14 +47,13 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const tax = calculateTax(stateConfig, amount);
   const amtFmt = amount.toLocaleString("en-US");
   const moFmt = Math.round(tax.takeHome / 12).toLocaleString("en-US");
-  const effRate = (tax.effectiveTotalRate * 100).toFixed(1);
 
   const desc = noTax
-    ? `Earning $${amtFmt}/year in ${stateName}? Take-home = $${moFmt}/month (${TAX_YEAR}). Effective rate ${effRate}%. No state income tax — free full breakdown, instant, no signup.`
-    : `Earning $${amtFmt}/year in ${stateName}? Take-home = $${moFmt}/month (${TAX_YEAR}). Effective rate ${effRate}%. Full federal + state breakdown — free, instant, no signup.`;
+    ? `See how much $${amtFmt} is after taxes in ${stateName} (${TAX_YEAR}). Take-home: $${moFmt}/mo — no state income tax. Monthly, biweekly & weekly breakdown. Free, instant.`
+    : `See how much $${amtFmt} is after taxes in ${stateName} (${TAX_YEAR}). Take-home: $${moFmt}/mo after all taxes. Monthly, biweekly & weekly breakdown. Free, instant.`;
 
   return {
-    title: `$${amtFmt} After Taxes in ${stateName} — $${moFmt}/mo`,
+    title: `$${amtFmt} After Tax in ${stateName} — $${moFmt}/mo (${TAX_YEAR})`,
     description: desc,
     alternates: {
       canonical: `https://www.takehomeusa.com/salary/${slug}`,
@@ -102,18 +101,25 @@ export default async function SalaryPage({ params }: { params: Params }) {
       a: `A $${amtFmt} annual salary in ${stateName} works out to ${fmt(monthly)} per month after taxes, or ${fmt(biweekly)} bi-weekly (every two weeks), or ${fmt(weekly)} per week.`,
     },
     {
+      q: `Is $${amtFmt} a good salary in ${stateName}?`,
+      a: `A $${amtFmt} salary in ${stateName} results in ${fmt(monthly)}/month take-home after taxes (${TAX_YEAR}). ${
+        amount >= 175_000 ? "This is a top-5% US income — well above average in most states." :
+        amount >= 90_000  ? "This is above the US median household income (~$77K) — comfortable in many areas." :
+        amount >= 60_000  ? "This is near the US median individual income — livable in most mid-sized cities." :
+                            "This is below the US median — workable in lower cost-of-living areas."
+      } Your purchasing power also depends on your specific location within ${stateName}.`,
+    },
+    {
+      q: `What taxes are taken out of a $${amtFmt} salary in ${stateName}?`,
+      a: noTax
+        ? `On a $${amtFmt} salary in ${stateName}, deductions are: Federal income tax ${fmt(tax.federalTax)} (${pct(tax.effectiveFederalRate)} effective, ${pct(tax.marginalRate)} marginal), Social Security ${fmt(tax.socialSecurity)} (6.2%), and Medicare ${fmt(tax.medicare)} (1.45%). ${stateName} has no state income tax. Total tax withheld: ${fmt(tax.totalTax)}.`
+        : `On a $${amtFmt} salary in ${stateName}, deductions are: Federal income tax ${fmt(tax.federalTax)} (${pct(tax.effectiveFederalRate)} effective), ${stateName} state tax ${fmt(tax.stateTax)} (${pct(tax.stateTax / amount)} effective), Social Security ${fmt(tax.socialSecurity)} (6.2%), and Medicare ${fmt(tax.medicare)} (1.45%). Total tax withheld: ${fmt(tax.totalTax)}.`,
+    },
+    {
       q: `Does ${stateName} have a state income tax?`,
       a: noTax
         ? `No. ${stateName} is one of nine US states with zero state income tax. On a $${amtFmt} salary you pay $0 in state tax — a significant advantage over states like California (up to 13.3%) or New York (up to 10.9%).`
         : `Yes. ${stateName} has a state income tax with a top rate of ${topRateDisplay}. On a $${amtFmt} salary, your estimated ${stateName} state tax is ${fmt(tax.stateTax)} (effective state rate: ${pct(tax.stateTax / amount)}).`,
-    },
-    {
-      q: `What is the effective tax rate on a $${amtFmt} salary in ${stateName}?`,
-      a: `The effective total tax rate on a $${amtFmt} salary in ${stateName} is ${pct(tax.effectiveTotalRate)}. This combines federal income tax (${pct(tax.effectiveFederalRate)} effective), FICA taxes — Social Security (${pct(tax.socialSecurity / amount)}) and Medicare (${pct(tax.medicare / amount)})${noTax ? `. ${stateName} has no state income tax.` : `, and ${stateName} state tax (${pct(tax.stateTax / amount)} effective).`}`,
-    },
-    {
-      q: `What is the marginal (top) federal tax bracket for $${amtFmt}?`,
-      a: `The marginal federal tax rate on a $${amtFmt} salary is ${pct(tax.marginalRate)}. Not all income is taxed at this rate — your effective federal rate is only ${pct(tax.effectiveFederalRate)} because lower income portions are taxed at 10%, 12%, and so on. The US uses progressive brackets.`,
     },
     {
       q: `How much is $${amtFmt} a year per hour after taxes in ${stateName}?`,
@@ -293,12 +299,15 @@ export default async function SalaryPage({ params }: { params: Params }) {
             </div>
 
             <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight mb-3">
-              ${amtFmt} a Year After Taxes<br />
+              ${amtFmt} After Tax ({TAX_YEAR})<br />
               <span className="text-white/60">in {stateName}</span>
             </h1>
+            <p className="text-white/70 text-base sm:text-lg mt-3 mb-2 max-w-2xl">
+              See your exact take-home pay on a ${amtFmt} salary in {stateName} after federal income tax{noTax ? ", Social Security, and Medicare" : `, ${stateName} state income tax, Social Security, and Medicare`}.
+            </p>
 
             {/* ── The Answer — immediately visible ── */}
-            <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl">
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl">
               <div className="bg-white/10 rounded-xl p-3 sm:p-4 text-center backdrop-blur-sm">
                 <p className="text-xl sm:text-2xl font-black text-green-400">{fmt(tax.takeHome)}</p>
                 <p className="text-xs text-white/60 mt-1">Per Year</p>
