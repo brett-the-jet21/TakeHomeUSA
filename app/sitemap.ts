@@ -2,6 +2,7 @@ export const dynamic = "force-static";
 
 import type { MetadataRoute } from "next";
 import { ALL_STATE_CONFIGS, getStateSalaryAmounts } from "@/lib/states";
+import { CITY_BY_PAGE_SLUG, CITY_SALARY_AMOUNTS } from "@/lib/city-pages";
 
 // Hourly rates generated in /hourly/[slug]/page.tsx
 const HOURLY_RATES = [
@@ -175,5 +176,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }
   }
 
-  return [...corePages, ...blogPages, ...stateHubPages, ...salaryPages, ...hourlyPages, ...afterTaxPages, ...monthlyPages, ...comparePages];
+  // ── City salary pages ─────────────────────────────────────────────────────
+  const citySalaryPages: MetadataRoute.Sitemap = [];
+  for (const [citySlug] of CITY_BY_PAGE_SLUG) {
+    for (const amount of CITY_SALARY_AMOUNTS) {
+      citySalaryPages.push({
+        url: `${BASE}/salary/${amount}-salary-after-tax-${citySlug}`,
+        lastModified: LAST_MODIFIED,
+        changeFrequency: "monthly",
+        priority: HIGH_PRIORITY_AMOUNTS.has(amount) ? 0.80 : 0.70,
+      });
+    }
+  }
+
+  return [...corePages, ...blogPages, ...stateHubPages, ...salaryPages, ...hourlyPages, ...afterTaxPages, ...monthlyPages, ...comparePages, ...citySalaryPages];
 }
