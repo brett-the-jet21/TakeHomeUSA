@@ -159,8 +159,8 @@ export default async function SalaryPage({ params }: { params: Params }) {
   const howToSchema = {
     "@context": "https://schema.org",
     "@type": "HowTo",
-    name: `How to calculate take-home pay for a $${amtFmt} salary in ${stateName}`,
-    description: `Step-by-step calculation of the net take-home pay for a $${amtFmt} annual salary in ${stateName} using ${TAX_YEAR} IRS federal tax brackets.`,
+    name: `How to calculate take-home pay for a $${amtFmt} salary in ${displayName}`,
+    description: `Step-by-step calculation of the net take-home pay for a $${amtFmt} annual salary in ${displayName} using ${TAX_YEAR} IRS federal tax brackets.`,
     step: [
       {
         "@type": "HowToStep",
@@ -215,15 +215,15 @@ export default async function SalaryPage({ params }: { params: Params }) {
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: "https://www.takehomeusa.com/" },
       { "@type": "ListItem", position: 2, name: `${stateName} Salary Calculator`, item: `https://www.takehomeusa.com/${stateSlug}` },
-      { "@type": "ListItem", position: 3, name: `$${amtFmt} After Tax in ${stateName}`, item: `https://www.takehomeusa.com/salary/${slug}` },
+      { "@type": "ListItem", position: 3, name: `$${amtFmt} After Tax in ${displayName}`, item: `https://www.takehomeusa.com/salary/${slug}` },
     ],
   };
 
   const webPageSchema = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: `$${amtFmt} Salary After Tax in ${stateName} (${TAX_YEAR})`,
-    description: `Exact take-home pay for a $${amtFmt} salary in ${stateName} based on ${TAX_YEAR} federal tax brackets and official state tax tables.`,
+    name: `$${amtFmt} Salary After Tax in ${displayName} (${TAX_YEAR})`,
+    description: `Exact take-home pay for a $${amtFmt} salary in ${displayName} based on ${TAX_YEAR} federal tax brackets and official state tax tables.`,
     url: `https://www.takehomeusa.com/salary/${slug}`,
     isPartOf: { "@type": "WebSite", name: "TakeHomeUSA", url: "https://www.takehomeusa.com" },
     dateModified: `${TAX_YEAR}-01-01`,
