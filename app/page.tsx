@@ -7,8 +7,8 @@ import { ALL_STATE_CONFIGS, STATE_BY_SLUG } from "@/lib/states";
 import HomePageClient from "./HomePageClient";
 
 export const metadata: Metadata = {
-  title: { absolute: `Take-Home Pay Calculator — All 50 States | TakeHomeUSA` },
-  description: `See exactly what you keep after taxes on any salary. Free ${TAX_YEAR} calculator — all 50 states, full federal + state breakdown, monthly paycheck. No signup.`,
+  title: { absolute: `Free Paycheck Calculator ${TAX_YEAR} — All 50 States | TakeHomeUSA` },
+  description: `Enter your salary — see exactly what hits your bank account after taxes. Free ${TAX_YEAR} calculator for all 50 states. Federal + state breakdown, instant, no signup.`,
   alternates: { canonical: "https://www.takehomeusa.com/" },
   openGraph: {
     title: `Take-Home Pay Calculator — All 50 States | TakeHomeUSA`,
@@ -121,6 +121,16 @@ const faqSchema = {
 const POPULAR_SALARIES_CONTENT = [50_000, 60_000, 75_000, 100_000, 125_000, 150_000];
 const HIGHLIGHT_STATES = ["texas", "california", "new-york", "florida", "washington", "georgia"];
 
+const POPULAR_SALARY_GRID = [50_000, 60_000, 65_000, 70_000, 75_000, 80_000, 90_000, 100_000, 110_000, 120_000, 125_000, 150_000];
+const POPULAR_COMPARE_PAIRS: [string, string][] = [
+  ["texas", "california"],
+  ["texas", "new-york"],
+  ["florida", "new-york"],
+  ["washington", "california"],
+  ["texas", "illinois"],
+  ["nevada", "california"],
+];
+
 export default function HomePage() {
   // Pre-compute table data at build time
   const comparisonData = POPULAR_SALARIES_CONTENT.map((salary) => {
@@ -128,6 +138,29 @@ export default function HomePage() {
     const ca = calculateTax(STATE_BY_SLUG.get("california")!, salary);
     const ny = calculateTax(STATE_BY_SLUG.get("new-york")!, salary);
     return { salary, tx: tx.takeHome, ca: ca.takeHome, ny: ny.takeHome };
+  });
+
+  const salaryGridData = POPULAR_SALARY_GRID.map((salary) => {
+    const tx = calculateTax(STATE_BY_SLUG.get("texas")!, salary);
+    const ca = calculateTax(STATE_BY_SLUG.get("california")!, salary);
+    return { salary, txTake: Math.round(tx.takeHome), caTake: Math.round(ca.takeHome) };
+  });
+
+  const compareGridData = POPULAR_COMPARE_PAIRS.map(([s1slug, s2slug]) => {
+    const s1 = STATE_BY_SLUG.get(s1slug)!;
+    const s2 = STATE_BY_SLUG.get(s2slug)!;
+    const t1 = calculateTax(s1, 100_000);
+    const t2 = calculateTax(s2, 100_000);
+    const diff = t1.takeHome - t2.takeHome;
+    return {
+      label1: s1.name,
+      label2: s2.name,
+      compareSlug: `${s1slug}-vs-${s2slug}`,
+      take1: Math.round(t1.takeHome),
+      take2: Math.round(t2.takeHome),
+      absDiff: Math.round(Math.abs(diff)),
+      s1Wins: diff >= 0,
+    };
   });
 
   const noTaxStates = ALL_STATE_CONFIGS.filter((s) => s.noTax);
@@ -263,18 +296,55 @@ export default function HomePage() {
       {/* ── Popular Salary Pages ──────────────────────────────────────────────── */}
       <section className="container-page my-14">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Popular Salary Calculations</h2>
-        <p className="text-gray-500 mb-6">Most-searched salaries with full after-tax breakdowns for all 50 states.</p>
+        <p className="text-gray-500 mb-6">Most-searched salaries — see exact take-home for all 50 states.</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {[50_000, 60_000, 65_000, 70_000, 75_000, 80_000, 90_000, 100_000, 110_000, 120_000, 125_000, 150_000].map((salary) => (
+          {salaryGridData.map(({ salary, txTake }) => (
             <Link
               key={salary}
               href={`/after-tax/${salary}-a-year-after-tax`}
-              className="bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-400 hover:shadow-md transition-all text-center"
+              className="bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-400 hover:shadow-md transition-all"
             >
-              <p className="font-bold text-gray-900">${salary.toLocaleString()}</p>
-              <p className="text-blue-600 text-sm mt-1">All 50 states →</p>
+              <p className="font-bold text-gray-900">${salary.toLocaleString()}/yr</p>
+              <p className="text-green-700 font-semibold text-sm mt-1">TX: {fmt(txTake)}</p>
+              <p className="text-blue-600 text-xs mt-0.5">All 50 states →</p>
             </Link>
           ))}
+        </div>
+      </section>
+
+      {/* ── Popular State Comparisons ─────────────────────────────────────────── */}
+      <section className="bg-gradient-to-r from-gray-50 to-indigo-50 border-y border-gray-200 py-12">
+        <div className="container-page">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Popular State Comparisons</h2>
+          <p className="text-gray-500 mb-6">See how much more you keep by living in a lower-tax state — on a $100K salary.</p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {compareGridData.map(({ label1, label2, compareSlug, take1, take2, absDiff, s1Wins }) => {
+              const winner = s1Wins ? label1 : label2;
+              const winnerTake = s1Wins ? take1 : take2;
+              const loserTake = s1Wins ? take2 : take1;
+              return (
+                <Link
+                  key={compareSlug}
+                  href={`/compare/${compareSlug}`}
+                  className="bg-white border border-gray-200 rounded-xl p-5 hover:border-indigo-400 hover:shadow-md transition-all"
+                >
+                  <p className="font-bold text-gray-900 text-sm mb-3">{label1} vs {label2}</p>
+                  <div className="flex items-end justify-between mb-2">
+                    <div>
+                      <p className="text-green-700 font-bold text-lg">{fmt(winnerTake)}</p>
+                      <p className="text-gray-500 text-xs">{winner} on $100K</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-gray-600 font-semibold text-sm">{fmt(loserTake)}</p>
+                      <p className="text-gray-400 text-xs">{s1Wins ? label2 : label1}</p>
+                    </div>
+                  </div>
+                  <p className="text-indigo-700 font-semibold text-sm">{winner} keeps {fmt(absDiff)} more/yr →</p>
+                </Link>
+              );
+            })}
+          </div>
+          <p className="text-xs text-gray-400 mt-4">Single filer, standard deduction, {TAX_YEAR}. <Link href="/compare" className="text-blue-500 hover:underline">View all state comparisons →</Link></p>
         </div>
       </section>
 

@@ -254,6 +254,36 @@ export default async function AfterTaxPage({ params }: { params: Params }) {
         </div>
       </section>
 
+      {/* ── Key Findings Narrative ────────────────────────────────────────────── */}
+      <section className="container-page my-8">
+        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 max-w-3xl">
+          <h2 className="text-lg font-bold text-blue-900 mb-3">
+            Key Findings for a ${amtFmt} Salary ({TAX_YEAR})
+          </h2>
+          <div className="space-y-2 text-blue-800 text-sm leading-relaxed">
+            <p>
+              <strong>Best take-home:</strong> {fmt(best.tax.takeHome)}/year in {best.cfg.name}
+              {best.cfg.noTax ? " — no state income tax" : ""}.
+              That&apos;s {fmt(best.tax.takeHome / 12)}/month after all taxes.
+            </p>
+            <p>
+              <strong>In Texas</strong> (no state tax): {fmt(texasResult.tax.takeHome)}/year (
+              {fmt(texasResult.tax.takeHome / 12)}/month). Federal tax: {fmt(texasResult.tax.federalTax)}{" "}
+              ({pct(texasResult.tax.effectiveFederalRate)} effective rate).
+            </p>
+            <p>
+              <strong>State tax gap:</strong> Choosing a no-tax state over the highest-tax state saves{" "}
+              {fmt(best.tax.takeHome - worst.tax.takeHome)}/year on a ${amtFmt} salary. Over 10 years,
+              that&apos;s {fmt((best.tax.takeHome - worst.tax.takeHome) * 10)} in extra take-home pay.
+            </p>
+            <p>
+              <strong>vs. California:</strong> Texas residents keep {fmt(texasResult.tax.takeHome - californiaResult.tax.takeHome)}/year
+              more than California residents — {fmt((texasResult.tax.takeHome - californiaResult.tax.takeHome) / 12)}/month.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* ── All 50 States Table ───────────────────────────────────────────────── */}
       <section className="container-page my-10">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">

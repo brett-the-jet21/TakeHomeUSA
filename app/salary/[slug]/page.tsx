@@ -6,6 +6,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { calculateTax, fmt, pct, TAX_YEAR } from "@/lib/tax";
 import { STATE_BY_SLUG, ALL_STATE_CONFIGS, getStateSalaryAmounts } from "@/lib/states";
+import { CITY_BY_PAGE_SLUG, CITY_SALARY_AMOUNTS } from "@/lib/city-pages";
+import { CITY_BY_SLUG, calcCityTax } from "@/lib/cities";
 import SalaryCalculator from "./SalaryCalculator";
 
 // ─── Route Types ──────────────────────────────────────────────────────────────
@@ -17,20 +19,37 @@ function parseSlug(slug: unknown) {
   const m = slug.match(/^(\d+)-salary-after-tax-([a-z-]+)$/);
   if (!m) return null;
   const amount = Number(m[1]);
-  const stateSlug = m[2];
+  const locationSlug = m[2];
   if (!Number.isFinite(amount) || amount < 1_000 || amount > 100_000_000_000_000) return null;
-  const stateConfig = STATE_BY_SLUG.get(stateSlug);
-  if (!stateConfig) return null;
-  return { amount, stateSlug, stateConfig };
+
+  // Try state lookup first
+  const stateConfig = STATE_BY_SLUG.get(locationSlug);
+  if (stateConfig) return { amount, stateSlug: locationSlug, stateConfig, cityConfig: null };
+
+  // Fall back to city lookup
+  const cityConfig = CITY_BY_PAGE_SLUG.get(locationSlug);
+  if (cityConfig) {
+    const cityStateConfig = STATE_BY_SLUG.get(cityConfig.stateSlug);
+    if (!cityStateConfig) return null;
+    return { amount, stateSlug: cityConfig.stateSlug, stateConfig: cityStateConfig, cityConfig };
+  }
+
+  return null;
 }
 
-// ─── Static Generation: All 50 states ────────────────────────────────────────
+// ─── Static Generation: All 50 states + 20 cities ───────────────────────────
 // Texas → $1K steps (481 pages); all others → $5K steps (97 pages × 49 states)
+// Cities → 5 salary amounts × 20 cities = 100 pages
 export function generateStaticParams() {
   const params: { slug: string }[] = [];
   for (const [stateSlug] of STATE_BY_SLUG) {
     for (const amount of getStateSalaryAmounts(stateSlug)) {
       params.push({ slug: `${amount}-salary-after-tax-${stateSlug}` });
+    }
+  }
+  for (const [citySlug] of CITY_BY_PAGE_SLUG) {
+    for (const amount of CITY_SALARY_AMOUNTS) {
+      params.push({ slug: `${amount}-salary-after-tax-${citySlug}` });
     }
   }
   return params;
@@ -42,24 +61,28 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const parsed = parseSlug(slug);
   if (!parsed) return {};
 
-  const { amount, stateConfig } = parsed;
+  const { amount, stateConfig, cityConfig } = parsed;
   const { name: stateName, noTax } = stateConfig;
-  const tax = calculateTax(stateConfig, amount);
+  const displayName = cityConfig ? cityConfig.name : stateName;
+  const baseTaxMeta = calculateTax(stateConfig, amount);
+  const cityTaxAmtMeta = cityConfig?.cityTaxSlug ? calcCityTax(CITY_BY_SLUG.get(cityConfig.cityTaxSlug)!, amount) : 0;
+  const takeHomeMeta = baseTaxMeta.takeHome - cityTaxAmtMeta;
   const amtFmt = amount.toLocaleString("en-US");
-  const moFmt = Math.round(tax.takeHome / 12).toLocaleString("en-US");
+  const moFmt = Math.round(takeHomeMeta / 12).toLocaleString("en-US");
 
-  const desc = noTax
-    ? `See how much $${amtFmt} is after taxes in ${stateName} (${TAX_YEAR}). Take-home: $${moFmt}/mo — no state income tax. Monthly, biweekly & weekly breakdown. Free, instant.`
-    : `See how much $${amtFmt} is after taxes in ${stateName} (${TAX_YEAR}). Take-home: $${moFmt}/mo after all taxes. Monthly, biweekly & weekly breakdown. Free, instant.`;
+  const hasLocalTax = cityTaxAmtMeta > 0;
+  const desc = noTax && !hasLocalTax
+    ? `See how much $${amtFmt} is after taxes in ${displayName} (${TAX_YEAR}). Take-home: $${moFmt}/mo — no state income tax. Monthly, biweekly & weekly breakdown. Free, instant.`
+    : `See how much $${amtFmt} is after taxes in ${displayName} (${TAX_YEAR}). Take-home: $${moFmt}/mo after all taxes. Monthly, biweekly & weekly breakdown. Free, instant.`;
 
   return {
-    title: `$${amtFmt} After Tax in ${stateName} — $${moFmt}/mo (${TAX_YEAR})`,
+    title: `$${amtFmt} After Tax in ${displayName} — $${moFmt}/mo (${TAX_YEAR})`,
     description: desc,
     alternates: {
       canonical: `https://www.takehomeusa.com/salary/${slug}`,
     },
     openGraph: {
-      title: `$${amtFmt} a Year After Taxes in ${stateName} = $${moFmt}/mo | TakeHomeUSA`,
+      title: `$${amtFmt} a Year After Taxes in ${displayName} = $${moFmt}/mo | TakeHomeUSA`,
       description: desc,
       url: `https://www.takehomeusa.com/salary/${slug}`,
       siteName: "TakeHomeUSA",
@@ -67,7 +90,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     },
     twitter: {
       card: "summary",
-      title: `$${amtFmt} a Year After Taxes in ${stateName} = $${moFmt}/mo`,
+      title: `$${amtFmt} a Year After Taxes in ${displayName} = $${moFmt}/mo`,
       description: desc,
     },
   };
@@ -79,9 +102,14 @@ export default async function SalaryPage({ params }: { params: Params }) {
   const parsed = parseSlug(slug);
   if (!parsed) return notFound();
 
-  const { amount, stateSlug, stateConfig } = parsed;
+  const { amount, stateSlug, stateConfig, cityConfig } = parsed;
   const { name: stateName, noTax, topRateDisplay, heroGradient } = stateConfig;
-  const tax = calculateTax(stateConfig, amount);
+  const displayName = cityConfig ? cityConfig.name : stateName;
+  const baseTax = calculateTax(stateConfig, amount);
+  const cityTaxAmt = cityConfig?.cityTaxSlug ? calcCityTax(CITY_BY_SLUG.get(cityConfig.cityTaxSlug)!, amount) : 0;
+  const tax = cityTaxAmt > 0
+    ? { ...baseTax, takeHome: baseTax.takeHome - cityTaxAmt, totalTax: baseTax.totalTax + cityTaxAmt }
+    : baseTax;
   const amtFmt = amount.toLocaleString("en-US");
   const monthly = tax.takeHome / 12;
   const biweekly = tax.takeHome / 26;
@@ -131,8 +159,8 @@ export default async function SalaryPage({ params }: { params: Params }) {
   const howToSchema = {
     "@context": "https://schema.org",
     "@type": "HowTo",
-    name: `How to calculate take-home pay for a $${amtFmt} salary in ${stateName}`,
-    description: `Step-by-step calculation of the net take-home pay for a $${amtFmt} annual salary in ${stateName} using ${TAX_YEAR} IRS federal tax brackets.`,
+    name: `How to calculate take-home pay for a $${amtFmt} salary in ${displayName}`,
+    description: `Step-by-step calculation of the net take-home pay for a $${amtFmt} annual salary in ${displayName} using ${TAX_YEAR} IRS federal tax brackets.`,
     step: [
       {
         "@type": "HowToStep",
@@ -187,15 +215,15 @@ export default async function SalaryPage({ params }: { params: Params }) {
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: "https://www.takehomeusa.com/" },
       { "@type": "ListItem", position: 2, name: `${stateName} Salary Calculator`, item: `https://www.takehomeusa.com/${stateSlug}` },
-      { "@type": "ListItem", position: 3, name: `$${amtFmt} After Tax in ${stateName}`, item: `https://www.takehomeusa.com/salary/${slug}` },
+      { "@type": "ListItem", position: 3, name: `$${amtFmt} After Tax in ${displayName}`, item: `https://www.takehomeusa.com/salary/${slug}` },
     ],
   };
 
   const webPageSchema = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: `$${amtFmt} Salary After Tax in ${stateName} (${TAX_YEAR})`,
-    description: `Exact take-home pay for a $${amtFmt} salary in ${stateName} based on ${TAX_YEAR} federal tax brackets and official state tax tables.`,
+    name: `$${amtFmt} Salary After Tax in ${displayName} (${TAX_YEAR})`,
+    description: `Exact take-home pay for a $${amtFmt} salary in ${displayName} based on ${TAX_YEAR} federal tax brackets and official state tax tables.`,
     url: `https://www.takehomeusa.com/salary/${slug}`,
     isPartOf: { "@type": "WebSite", name: "TakeHomeUSA", url: "https://www.takehomeusa.com" },
     dateModified: `${TAX_YEAR}-01-01`,
@@ -210,6 +238,10 @@ export default async function SalaryPage({ params }: { params: Params }) {
     ...allAmounts.slice(Math.max(0, idx - 4), idx),
     ...allAmounts.slice(idx + 1, idx + 5),
   ].filter((a) => a !== amount);
+
+  const nearbyAmounts = [amount - 10_000, amount + 10_000].filter(
+    (a) => a > 0 && allAmounts.includes(a)
+  );
 
   // ── Popular states for this same salary ────────────────────────────────────
   const popularStates = ["texas", "california", "new-york", "florida", "washington", "georgia", "illinois", "pennsylvania"]
@@ -300,10 +332,10 @@ export default async function SalaryPage({ params }: { params: Params }) {
 
             <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight mb-3">
               ${amtFmt} After Tax ({TAX_YEAR})<br />
-              <span className="text-white/60">in {stateName}</span>
+              <span className="text-white/60">in {displayName}</span>
             </h1>
             <p className="text-white/70 text-base sm:text-lg mt-3 mb-2 max-w-2xl">
-              See your exact take-home pay on a ${amtFmt} salary in {stateName} after federal income tax{noTax ? ", Social Security, and Medicare" : `, ${stateName} state income tax, Social Security, and Medicare`}.
+              See your exact take-home pay on a ${amtFmt} salary in {displayName} after federal income tax{noTax && !cityTaxAmt ? ", Social Security, and Medicare" : `, ${stateName} state income tax, Social Security, and Medicare`}.
             </p>
 
             {/* ── The Answer — immediately visible ── */}
@@ -606,6 +638,53 @@ export default async function SalaryPage({ params }: { params: Params }) {
           <Link href={`/${stateSlug}`} className="text-blue-600 hover:text-blue-800 font-semibold text-sm">
             Browse all {stateName} salary calculations →
           </Link>
+        </div>
+      </section>
+
+      {/* ── Related Salaries ─────────────────────────────────────────────────── */}
+      <section className="container-page my-8 p-5 bg-gray-50 rounded-2xl border border-gray-100">
+        <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">Related Salaries</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Same salary, other popular states */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">${amtFmt} in other states</p>
+            <ul className="space-y-1">
+              {popularStates.slice(0, 4).map((s) => {
+                const t = calculateTax(s, amount);
+                return (
+                  <li key={s.slug}>
+                    <Link
+                      href={`/salary/${amount}-salary-after-tax-${s.slug}`}
+                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      ${amtFmt} in {s.name} — {fmt(t.takeHome)}/yr
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+          {/* Nearby salaries in same state */}
+          {nearbyAmounts.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Nearby salaries in {stateName}</p>
+              <ul className="space-y-1">
+                {nearbyAmounts.map((amt) => {
+                  const t = calculateTax(stateConfig, amt);
+                  return (
+                    <li key={amt}>
+                      <Link
+                        href={`/salary/${amt}-salary-after-tax-${stateSlug}`}
+                        className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        ${amt.toLocaleString()} in {stateName} — {fmt(t.takeHome)}/yr
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       </section>
 
