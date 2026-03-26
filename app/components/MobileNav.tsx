@@ -5,11 +5,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_LINKS = [
-  { href: "/",        label: "Calculator"     },
-  { href: "/states",  label: "State Guides"   },
-  { href: "/compare", label: "Compare States" },
-  { href: "/blog",    label: "Blog & Guides"  },
-  { href: "/about",   label: "About"          },
+  { href: "/",            label: "Calculator"       },
+  { href: "/states",      label: "State Guides"     },
+  { href: "/compare",     label: "Compare States"   },
+  { href: "/blog",        label: "Blog & Guides"    },
+  { href: "/data",        label: "Data Hub"         },
+  { href: "/relocate",    label: "Relocation Guide" },
+  { href: "/embed",       label: "Embed Widgets"    },
+  { href: "/methodology", label: "Methodology"      },
+  { href: "/glossary",    label: "Tax Glossary"     },
+  { href: "/press",       label: "Press & Media"    },
+  { href: "/about",       label: "About"            },
 ];
 
 export default function MobileNav() {

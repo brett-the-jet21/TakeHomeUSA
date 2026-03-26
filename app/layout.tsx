@@ -317,6 +317,44 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 Blog
               </Link>
 
+              {/* Resources dropdown */}
+              <div className="relative group hidden md:block">
+                <button className="flex items-center gap-1 px-3 py-1.5 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors text-sm font-medium">
+                  Resources
+                  <svg className="w-3.5 h-3.5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <div className="absolute top-full right-0 mt-1 w-60 bg-white rounded-2xl shadow-xl border border-gray-200 py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50">
+                  <p className="px-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Data & Tools</p>
+                  <div className="space-y-0.5 px-2 mb-3">
+                    {[
+                      { href: "/data", label: "Data Hub", desc: "Pre-computed salary tables" },
+                      { href: "/embed", label: "Embed Widgets", desc: "Add a calculator to your site" },
+                      { href: "/relocate", label: "Relocation Guide", desc: "Best states for take-home pay" },
+                    ].map((item) => (
+                      <Link key={item.href} href={item.href} className="flex flex-col px-2 py-2 rounded-lg hover:bg-blue-50 transition-colors">
+                        <span className="text-sm font-semibold text-gray-800 hover:text-blue-700">{item.label}</span>
+                        <span className="text-xs text-gray-400">{item.desc}</span>
+                      </Link>
+                    ))}
+                  </div>
+                  <div className="border-t border-gray-100 pt-2 mx-2 space-y-0.5">
+                    <p className="px-2 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wider">Reference</p>
+                    {[
+                      { href: "/methodology", label: "Methodology", desc: "How we calculate" },
+                      { href: "/glossary", label: "Glossary", desc: "Tax terms explained" },
+                      { href: "/press", label: "Press & Media", desc: "For journalists & bloggers" },
+                    ].map((item) => (
+                      <Link key={item.href} href={item.href} className="flex flex-col px-2 py-2 rounded-lg hover:bg-blue-50 transition-colors">
+                        <span className="text-sm font-semibold text-gray-800 hover:text-blue-700">{item.label}</span>
+                        <span className="text-xs text-gray-400">{item.desc}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               <Link
                 href="/about"
                 className="px-3 py-1.5 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors hidden md:block"
@@ -353,12 +391,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 Free, accurate salary after-tax calculators for all 50 US states.
                 Real {TAX_YEAR} IRS tax brackets. No signup required.
               </p>
-              <div className="flex gap-3 text-xs">
-                <Link href="/about"   className="hover:text-white transition-colors">About</Link>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                <Link href="/about"       className="hover:text-white transition-colors">About</Link>
                 <span>·</span>
-                <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+                <Link href="/methodology" className="hover:text-white transition-colors">Methodology</Link>
                 <span>·</span>
-                <Link href="/states"  className="hover:text-white transition-colors">All States</Link>
+                <Link href="/press"       className="hover:text-white transition-colors">Press</Link>
+                <span>·</span>
+                <Link href="/privacy"     className="hover:text-white transition-colors">Privacy</Link>
+                <span>·</span>
+                <Link href="/states"      className="hover:text-white transition-colors">All States</Link>
               </div>
             </div>
 
@@ -421,8 +463,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
 
           {/* Bottom bar */}
-          <div className="border-t border-gray-800">
-            <div className="container-page py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
+          {/* Resources column spans the grid */}
+          <div className="sm:col-span-2 lg:col-span-4 border-t border-gray-800 pt-6 mt-2">
+            <p className="text-white font-bold mb-3 text-sm uppercase tracking-wide">Resources & Tools</p>
+            <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+              {[
+                { href: "/data",        label: "Data Hub" },
+                { href: "/relocate",    label: "Relocation Guide" },
+                { href: "/embed",       label: "Embed Widgets" },
+                { href: "/methodology", label: "Methodology" },
+                { href: "/glossary",    label: "Tax Glossary" },
+                { href: "/press",       label: "Press & Media" },
+                { href: "/blog",        label: "Blog & Guides" },
+                { href: "/compare",     label: "Compare States" },
+              ].map(({ href, label }) => (
+                <Link key={href} href={href} className="hover:text-white transition-colors">{label}</Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t border-gray-800 sm:col-span-2 lg:col-span-4">
+            <div className="py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
               <p>© {new Date().getFullYear()} TakeHomeUSA.com · All rights reserved</p>
               <p className="text-center max-w-xl">
                 For informational purposes only. Numbers based on {TAX_YEAR} IRS tax
