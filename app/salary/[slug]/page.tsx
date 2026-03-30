@@ -244,10 +244,14 @@ export default async function SalaryPage({ params }: { params: Params }) {
   );
 
   // ── Popular states for this same salary ────────────────────────────────────
+  // Guard: only include states that actually have a page for this exact amount.
+  // Non-Texas states use $5K steps — Texas-specific $1K amounts (e.g. $97K) would
+  // otherwise produce broken links to /salary/97000-salary-after-tax-california.
   const popularStates = ["texas", "california", "new-york", "florida", "washington", "georgia", "illinois", "pennsylvania"]
     .map((s) => STATE_BY_SLUG.get(s)!)
     .filter(Boolean)
-    .filter((s) => s.slug !== stateSlug);
+    .filter((s) => s.slug !== stateSlug)
+    .filter((s) => getStateSalaryAmounts(s.slug).includes(amount));
 
   // ── "Is X a good salary?" context ──────────────────────────────────────────
   let salaryTier: string;
