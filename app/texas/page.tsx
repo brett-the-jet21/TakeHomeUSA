@@ -2,12 +2,12 @@ export const dynamic = "force-static";
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { calculateTexasTax, fmt, pct, TAX_YEAR } from "@/lib/tax";
+import { calculateTexasTax, calculateTax, fmt, pct, TAX_YEAR } from "@/lib/tax";
+import { STATE_BY_SLUG } from "@/lib/states";
 
 export const metadata: Metadata = {
-  title: `Texas Paycheck Calculator ${TAX_YEAR} — No State Tax`,
-  description:
-    `Enter your Texas salary — see what hits your bank account. $0 state tax: $100K → $79,180/yr ($6,598/mo). $75K → $59,785/yr. Free, instant, no signup.`,
+  title: `Texas Paycheck Calculator ${TAX_YEAR} — See Your Exact Take-Home Pay`,
+  description: `Find out exactly how much you keep after federal taxes — Texas has $0 state income tax. Free ${TAX_YEAR} calculator — enter your salary and see your take-home pay instantly.`,
   alternates: { canonical: "https://www.takehomeusa.com/texas" },
   openGraph: {
     title: `Texas Salary After Tax Calculator (${TAX_YEAR})`,
@@ -18,8 +18,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: `Texas Salary Calculator ${TAX_YEAR} — $0 State Tax`,
-    description: "$100K → $79,180/yr take-home. $75K → $59,785/yr. Free Texas salary after tax calculator.",
+    title: `Texas Paycheck Calculator ${TAX_YEAR} — See Your Exact Take-Home Pay`,
+    description: `Find out exactly how much you keep after federal taxes — Texas has $0 state income tax. Free ${TAX_YEAR} calculator.`,
   },
 };
 
@@ -129,8 +129,7 @@ export default function TexasPage() {
               </div>
             </div>
             <h1 className="text-4xl sm:text-5xl font-extrabold leading-tight mb-4">
-              Texas Salary After Tax<br />
-              <span className="text-blue-300">Calculator {TAX_YEAR}</span>
+              Texas Take-Home Pay Calculator ({TAX_YEAR})
             </h1>
             <p className="text-blue-200 text-lg mb-8 max-w-2xl">
               See your exact take-home pay for any Texas salary. No state income
@@ -280,6 +279,32 @@ export default function TexasPage() {
               <p className="text-gray-600 text-sm leading-relaxed">{a}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Compare Nearby States */}
+      <section className="container-page my-14">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Compare Nearby States</h2>
+        <div className="grid sm:grid-cols-3 gap-4">
+          {(["louisiana", "arkansas", "oklahoma"] as const).map((neighborSlug) => {
+            const neighborCfg = STATE_BY_SLUG.get(neighborSlug)!;
+            const neighborTax = calculateTax(neighborCfg, 100_000);
+            return (
+              <Link
+                key={neighborSlug}
+                href={`/${neighborSlug}`}
+                className="bg-white border border-gray-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all group"
+              >
+                <p className="font-bold text-gray-900 group-hover:text-blue-700 mb-1">{neighborCfg.name}</p>
+                <p className="text-sm text-gray-500 mb-2">
+                  {neighborCfg.noTax ? "No state income tax" : `Top rate: ${neighborCfg.topRateDisplay}`}
+                </p>
+                <p className="text-sm font-semibold text-green-700">
+                  $100K → {fmt(neighborTax.takeHome)}/yr
+                </p>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
