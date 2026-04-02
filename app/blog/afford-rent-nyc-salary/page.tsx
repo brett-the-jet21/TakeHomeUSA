@@ -38,7 +38,8 @@ export default function AffordRentNYCPost() {
   // For each rent level, compute the gross salary needed so that rent = 30% of gross
   const rows = RENT_SCENARIOS.map((s) => {
     const annualRent = s.monthlyRent * 12;
-    const grossNeeded = Math.ceil((annualRent / 0.30) / 1_000) * 1_000;
+    // Round up to nearest $5K — NY salary pages are generated in $5K steps only.
+    const grossNeeded = Math.ceil((annualRent / 0.30) / 5_000) * 5_000;
     const tax = calculateTax(nyState, grossNeeded);
     const monthlyTakeHome = tax.takeHome / 12;
     const rentPctTakeHome = (s.monthlyRent / monthlyTakeHome) * 100;

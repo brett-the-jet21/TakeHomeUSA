@@ -7,8 +7,8 @@ import { ALL_STATE_CONFIGS, STATE_BY_SLUG } from "@/lib/states";
 import HomePageClient from "./HomePageClient";
 
 export const metadata: Metadata = {
-  title: { absolute: `Free Paycheck Calculator ${TAX_YEAR} — All 50 States | TakeHomeUSA` },
-  description: `Enter your salary — see exactly what hits your bank account after taxes. Free ${TAX_YEAR} calculator for all 50 states. Federal + state breakdown, instant, no signup.`,
+  title: { absolute: `Salary Take-Home Pay Calculator — All 50 States ${TAX_YEAR} | TakeHomeUSA` },
+  description: `Find out exactly how much you keep after federal & state taxes. Free ${TAX_YEAR} calculator for all 50 states — enter your salary and see your take-home pay instantly.`,
   alternates: { canonical: "https://www.takehomeusa.com/" },
   openGraph: {
     title: `Take-Home Pay Calculator — All 50 States | TakeHomeUSA`,

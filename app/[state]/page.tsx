@@ -25,20 +25,11 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
   const { name, noTax, topRateDisplay, slug } = cfg;
 
-  // Compute real take-home numbers for the metadata description
-  const t75  = calculateTax(cfg, 75_000);
-  const t100 = calculateTax(cfg, 100_000);
-  const take75  = Math.round(t75.takeHome).toLocaleString("en-US");
-  const take100 = Math.round(t100.takeHome).toLocaleString("en-US");
-  const mo100   = Math.round(t100.takeHome / 12).toLocaleString("en-US");
-
-  const title = noTax
-    ? `${name} Paycheck Calculator ${TAX_YEAR} — No Tax`
-    : `${name} Take-Home Pay ${TAX_YEAR} — $${take100}/yr`;
+  const title = `${name} Paycheck Calculator ${TAX_YEAR} — See Your Exact Take-Home Pay`;
 
   const description = noTax
-    ? `Enter your ${name} salary — see what hits your bank account. $0 state tax: $100K → $${take100}/yr ($${mo100}/mo). Free ${TAX_YEAR}, instant, no signup.`
-    : `Enter your ${name} salary — see exact take-home after federal & state taxes. $100K → $${take100}/yr ($${mo100}/mo). Free ${TAX_YEAR}, instant, no signup.`;
+    ? `Find out exactly how much you keep after federal taxes — ${name} has $0 state income tax. Free ${TAX_YEAR} calculator — enter your salary and see your take-home pay instantly.`
+    : `Find out exactly how much you keep after federal & ${name} state taxes. Free ${TAX_YEAR} calculator — enter your salary and see your take-home pay instantly.`;
 
   return {
     title,
@@ -69,6 +60,59 @@ const SALARY_RANGES = [
 ];
 
 const COMPARE_SALARIES = [30_000, 50_000, 75_000, 100_000, 125_000, 150_000, 200_000];
+
+const STATE_NEIGHBORS: Record<string, string[]> = {
+  "alabama":        ["mississippi", "tennessee", "georgia"],
+  "alaska":         ["washington", "oregon", "idaho"],
+  "arizona":        ["california", "nevada", "new-mexico"],
+  "arkansas":       ["missouri", "tennessee", "oklahoma"],
+  "california":     ["oregon", "nevada", "arizona"],
+  "colorado":       ["wyoming", "utah", "new-mexico"],
+  "connecticut":    ["new-york", "massachusetts", "rhode-island"],
+  "delaware":       ["maryland", "pennsylvania", "new-jersey"],
+  "florida":        ["georgia", "alabama", "south-carolina"],
+  "georgia":        ["florida", "alabama", "tennessee"],
+  "hawaii":         ["california", "oregon", "washington"],
+  "idaho":          ["montana", "wyoming", "utah"],
+  "illinois":       ["indiana", "iowa", "wisconsin"],
+  "indiana":        ["illinois", "kentucky", "ohio"],
+  "iowa":           ["illinois", "minnesota", "missouri"],
+  "kansas":         ["colorado", "missouri", "oklahoma"],
+  "kentucky":       ["indiana", "tennessee", "ohio"],
+  "louisiana":      ["arkansas", "mississippi", "texas"],
+  "maine":          ["new-hampshire", "vermont", "massachusetts"],
+  "maryland":       ["pennsylvania", "virginia", "west-virginia"],
+  "massachusetts":  ["connecticut", "new-hampshire", "rhode-island"],
+  "michigan":       ["indiana", "ohio", "wisconsin"],
+  "minnesota":      ["iowa", "wisconsin", "north-dakota"],
+  "mississippi":    ["alabama", "arkansas", "louisiana"],
+  "missouri":       ["arkansas", "illinois", "kansas"],
+  "montana":        ["idaho", "north-dakota", "wyoming"],
+  "nebraska":       ["colorado", "iowa", "kansas"],
+  "nevada":         ["arizona", "california", "utah"],
+  "new-hampshire":  ["maine", "massachusetts", "vermont"],
+  "new-jersey":     ["delaware", "new-york", "pennsylvania"],
+  "new-mexico":     ["arizona", "colorado", "texas"],
+  "new-york":       ["connecticut", "massachusetts", "new-jersey"],
+  "north-carolina": ["georgia", "south-carolina", "virginia"],
+  "north-dakota":   ["minnesota", "montana", "south-dakota"],
+  "ohio":           ["indiana", "kentucky", "pennsylvania"],
+  "oklahoma":       ["arkansas", "colorado", "texas"],
+  "oregon":         ["california", "idaho", "washington"],
+  "pennsylvania":   ["delaware", "maryland", "new-jersey"],
+  "rhode-island":   ["connecticut", "massachusetts", "new-york"],
+  "south-carolina": ["georgia", "north-carolina", "tennessee"],
+  "south-dakota":   ["iowa", "minnesota", "nebraska"],
+  "tennessee":      ["alabama", "arkansas", "georgia"],
+  "texas":          ["arkansas", "louisiana", "oklahoma"],
+  "utah":           ["arizona", "colorado", "nevada"],
+  "vermont":        ["massachusetts", "new-hampshire", "new-york"],
+  "virginia":       ["maryland", "north-carolina", "tennessee"],
+  "washington":     ["idaho", "oregon", "california"],
+  "west-virginia":  ["kentucky", "maryland", "ohio"],
+  "wisconsin":      ["illinois", "iowa", "michigan"],
+  "wyoming":        ["colorado", "idaho", "montana"],
+};
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default async function StatePage({ params }: { params: Params }) {
@@ -195,8 +239,7 @@ export default async function StatePage({ params }: { params: Params }) {
             </div>
 
             <h1 className="text-4xl sm:text-5xl font-extrabold leading-tight mb-4">
-              {name} Salary After Tax<br />
-              <span className="text-white/60">Calculator {TAX_YEAR}</span>
+              {name} Take-Home Pay Calculator ({TAX_YEAR})
             </h1>
             <p className="text-white/70 text-lg mb-8 max-w-2xl">
               {description} See your exact take-home pay for any salary, powered by real {TAX_YEAR} federal and state tax data.
@@ -390,6 +433,34 @@ export default async function StatePage({ params }: { params: Params }) {
           ))}
         </div>
       </section>
+
+      {/* ── Compare Nearby States ──────────────────────────────────────────── */}
+      {(STATE_NEIGHBORS[slug] ?? []).length > 0 && (
+        <section className="container-page my-14">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Compare Nearby States</h2>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {(STATE_NEIGHBORS[slug] ?? []).slice(0, 3).map((neighborSlug) => {
+              const neighborCfg = STATE_BY_SLUG.get(neighborSlug)!;
+              const neighborTax = calculateTax(neighborCfg, 100_000);
+              return (
+                <Link
+                  key={neighborSlug}
+                  href={`/${neighborSlug}`}
+                  className="bg-white border border-gray-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all group"
+                >
+                  <p className="font-bold text-gray-900 group-hover:text-blue-700 mb-1">{neighborCfg.name}</p>
+                  <p className="text-sm text-gray-500 mb-2">
+                    {neighborCfg.noTax ? "No state income tax" : `Top rate: ${neighborCfg.topRateDisplay}`}
+                  </p>
+                  <p className="text-sm font-semibold text-green-700">
+                    $100K → {fmt(neighborTax.takeHome)}/yr
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ── Browse All ─────────────────────────────────────────────────────── */}
       <section className="bg-gray-50 border-t border-gray-200 py-12">

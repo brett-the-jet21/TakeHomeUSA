@@ -8,6 +8,10 @@
     "start": "next start",
     "lint": "eslint"
   },
+  "browserslist": {
+    "production": [">0.3%", "not dead", "not op_mini all"],
+    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
+  },
   "dependencies": {
     "next": "16.1.6",
     "react": "19.2.3",
