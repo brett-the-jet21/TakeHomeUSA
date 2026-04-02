@@ -1,5 +1,5 @@
 export const dynamic = "force-static";
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -9,12 +9,9 @@ import { STATE_BY_SLUG, ALL_STATE_CONFIGS } from "@/lib/states";
 import SalaryCalculator from "@/app/salary/[slug]/SalaryCalculator";
 
 // ─── Hourly Rates ─────────────────────────────────────────────────────────────
-// $10–$30 every dollar (minimum wage / entry level — very high search volume)
-// $32–$100 at key round numbers
+// Top round-number rates pre-built; dynamicParams=true handles everything else
 const HOURLY_RATES = [
-  10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-  20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-  32, 35, 38, 40, 42, 45, 48, 50, 55, 60, 65, 70, 75, 80, 85, 90, 100,
+  10, 12, 15, 17, 20, 25, 30, 35, 40, 45, 50, 60, 75, 100,
 ];
 
 // ─── Route Types ──────────────────────────────────────────────────────────────

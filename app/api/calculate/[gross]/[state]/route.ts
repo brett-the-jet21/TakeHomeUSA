@@ -14,31 +14,9 @@
 
 import { NextResponse } from "next/server";
 import { calculateTax, fmt, pct, TAX_YEAR } from "@/lib/tax";
-import { STATE_BY_SLUG, ALL_STATE_CONFIGS } from "@/lib/states";
+import { STATE_BY_SLUG } from "@/lib/states";
 
-export const dynamic = "force-static";
-export const dynamicParams = false;
-
-// ── Pre-built salary amounts ──────────────────────────────────────────────────
-// Covers the full range of queries AI agents and users ask about.
-const GROSS_AMOUNTS = [
-  20_000, 25_000, 30_000, 35_000, 40_000, 45_000,
-  50_000, 55_000, 60_000, 65_000, 70_000, 75_000,
-  80_000, 85_000, 90_000, 95_000, 100_000,
-  110_000, 120_000, 125_000, 130_000, 150_000,
-  175_000, 200_000, 250_000, 300_000, 400_000, 500_000,
-  750_000, 1_000_000,
-];
-
-export function generateStaticParams() {
-  const params: { gross: string; state: string }[] = [];
-  for (const gross of GROSS_AMOUNTS) {
-    for (const cfg of ALL_STATE_CONFIGS) {
-      params.push({ gross: String(gross), state: cfg.slug });
-    }
-  }
-  return params;
-}
+export const dynamic = "force-dynamic";
 
 type RouteParams = Promise<{ gross: string; state: string }>;
 

@@ -1,5 +1,5 @@
 export const dynamic = "force-static";
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -9,12 +9,10 @@ import { STATE_BY_SLUG, ALL_STATE_CONFIGS } from "@/lib/states";
 import SalaryCalculator from "@/app/salary/[slug]/SalaryCalculator";
 
 // ─── Monthly Amounts to Generate ─────────────────────────────────────────────
-// All common "X a month after taxes" queries
+// Top round-number amounts pre-built; dynamicParams=true handles everything else
 const MONTHLY_AMOUNTS = [
-  1_000, 1_500, 2_000, 2_500, 3_000, 3_500, 4_000, 4_500,
-  5_000, 5_500, 6_000, 6_500, 7_000, 7_500, 8_000, 8_500,
-  9_000, 9_500, 10_000, 11_000, 12_000, 13_000, 14_000, 15_000,
-  16_000, 17_000, 18_000, 19_000, 20_000,
+  1_000, 2_000, 3_000, 4_000, 5_000, 6_000,
+  7_000, 8_000, 10_000, 12_000, 15_000, 20_000,
 ];
 
 type Params = Promise<{ slug?: string }>;
@@ -26,7 +24,7 @@ function parseSlug(slug: unknown) {
   if (!m) return null;
   const monthly = Number(m[1]);
   const stateSlug = m[2];
-  if (!MONTHLY_AMOUNTS.includes(monthly)) return null;
+  if (!Number.isFinite(monthly) || monthly < 100 || monthly > 10_000_000) return null;
   const stateConfig = STATE_BY_SLUG.get(stateSlug);
   if (!stateConfig) return null;
   return { monthly, stateSlug, stateConfig };
