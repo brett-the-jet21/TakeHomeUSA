@@ -1,5 +1,6 @@
 export const dynamic = "force-static";
-export const dynamicParams = false;
+export const dynamicParams = true;
+export const revalidate = 86400;
 
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -8,11 +9,10 @@ import { calculateTax, fmt, pct, TAX_YEAR } from "@/lib/tax";
 import { STATE_BY_SLUG, ALL_STATE_CONFIGS } from "@/lib/states";
 
 // ─── Top states by search volume for comparison queries ──────────────────────
+// Top 10 pre-built (90 pairs); dynamicParams=true handles all other valid pairs
 const COMPARE_STATE_SLUGS = [
   "texas", "california", "florida", "new-york", "washington",
   "nevada", "illinois", "georgia", "north-carolina", "ohio",
-  "michigan", "arizona", "colorado", "virginia", "tennessee",
-  "pennsylvania", "new-jersey", "massachusetts", "north-dakota", "wyoming",
 ];
 
 // Salary amounts to show in side-by-side table

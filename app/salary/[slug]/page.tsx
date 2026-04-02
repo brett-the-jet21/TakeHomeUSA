@@ -1,5 +1,6 @@
 export const dynamic = "force-static";
-export const dynamicParams = false;
+export const dynamicParams = true;
+export const revalidate = 86400;
 
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -37,13 +38,21 @@ function parseSlug(slug: unknown) {
   return null;
 }
 
-// ─── Static Generation: All 50 states + 20 cities ───────────────────────────
-// Texas → $1K steps (481 pages); all others → $5K steps (97 pages × 49 states)
-// Cities → 5 salary amounts × 20 cities = 100 pages
+// ─── Static Generation: Round-number salaries × 50 states + 20 cities ──────
+// 23 round-number amounts × 50 states = 1,150 pages
+// 20 cities × 5 amounts = 100 pages → total ≈ 1,250 pages
+// dynamicParams = true so any other valid URL renders on-demand (no 404)
+const STATIC_SALARY_AMOUNTS = [
+  20_000, 25_000, 30_000, 35_000, 40_000, 45_000, 50_000,
+  60_000, 70_000, 75_000, 80_000, 90_000, 100_000,
+  110_000, 120_000, 125_000, 150_000, 175_000, 200_000,
+  250_000, 300_000, 400_000, 500_000,
+];
+
 export function generateStaticParams() {
   const params: { slug: string }[] = [];
   for (const [stateSlug] of STATE_BY_SLUG) {
-    for (const amount of getStateSalaryAmounts(stateSlug)) {
+    for (const amount of STATIC_SALARY_AMOUNTS) {
       params.push({ slug: `${amount}-salary-after-tax-${stateSlug}` });
     }
   }
