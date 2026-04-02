@@ -1,5 +1,6 @@
 export const dynamic = "force-static";
 export const dynamicParams = true;
+export const revalidate = 86400;
 
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -38,12 +39,12 @@ function parseSlug(slug: unknown) {
 }
 
 // ─── Static Generation: Round-number salaries × 50 states + 20 cities ──────
-// 27 round-number amounts × 50 states = 1,350 pages
-// 20 cities × 5 amounts = 100 pages → total ≈ 1,450 pages
+// 23 round-number amounts × 50 states = 1,150 pages
+// 20 cities × 5 amounts = 100 pages → total ≈ 1,250 pages
 // dynamicParams = true so any other valid URL renders on-demand (no 404)
 const STATIC_SALARY_AMOUNTS = [
-  20_000, 25_000, 30_000, 35_000, 40_000, 45_000, 50_000, 55_000, 60_000,
-  65_000, 70_000, 75_000, 80_000, 85_000, 90_000, 95_000, 100_000,
+  20_000, 25_000, 30_000, 35_000, 40_000, 45_000, 50_000,
+  60_000, 70_000, 75_000, 80_000, 90_000, 100_000,
   110_000, 120_000, 125_000, 150_000, 175_000, 200_000,
   250_000, 300_000, 400_000, 500_000,
 ];

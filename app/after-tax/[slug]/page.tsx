@@ -1,5 +1,6 @@
 export const dynamic = "force-static";
-export const dynamicParams = false;
+export const dynamicParams = true;
+export const revalidate = 86400;
 
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -8,13 +9,10 @@ import { calculateTax, fmt, pct, TAX_YEAR } from "@/lib/tax";
 import { ALL_STATE_CONFIGS, STATE_BY_SLUG } from "@/lib/states";
 
 // ─── Salary Amounts to Generate ───────────────────────────────────────────────
-// Popular round-number salary queries that don't specify a state
+// Top round-number amounts pre-built; dynamicParams=true handles everything else
 const SALARY_AMOUNTS = [
-  20_000, 25_000, 30_000, 35_000, 40_000, 45_000, 50_000,
-  55_000, 60_000, 65_000, 70_000, 75_000, 80_000, 85_000, 90_000, 95_000,
-  100_000, 105_000, 110_000, 115_000, 120_000, 125_000, 130_000, 135_000,
-  140_000, 145_000, 150_000, 160_000, 175_000, 200_000, 225_000, 250_000,
-  300_000, 350_000, 400_000, 500_000,
+  20_000, 25_000, 30_000, 40_000, 50_000, 60_000, 75_000,
+  100_000, 125_000, 150_000, 175_000, 200_000, 250_000, 300_000, 400_000, 500_000,
 ];
 
 // ─── Route Types ──────────────────────────────────────────────────────────────
@@ -27,7 +25,7 @@ function parseSlug(slug: unknown) {
   const m = slug.match(/^(\d+)-a-year-after-tax$/);
   if (!m) return null;
   const amount = Number(m[1]);
-  if (!SALARY_AMOUNTS.includes(amount)) return null;
+  if (!Number.isFinite(amount) || amount < 1_000 || amount > 100_000_000) return null;
   return { amount };
 }
 
