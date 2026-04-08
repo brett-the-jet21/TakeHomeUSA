@@ -103,6 +103,31 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   };
 }
 
+// ─── State-Specific Context Data ─────────────────────────────────────────────
+// Median household income (US Census ACS 2023) and average rent (Zillow 2024)
+// used for contextual "Is X a good salary?" and "What can you afford?" sections.
+const STATE_CONTEXT: Record<string, { median: number; rent: number; majorCity: string }> = {
+  california:    { median: 84_097, rent: 2_200, majorCity: "Los Angeles" },
+  "new-york":    { median: 74_314, rent: 1_900, majorCity: "New York City" },
+  texas:         { median: 67_321, rent: 1_350, majorCity: "Houston" },
+  florida:       { median: 63_062, rent: 1_650, majorCity: "Miami" },
+  washington:    { median: 84_247, rent: 1_850, majorCity: "Seattle" },
+  illinois:      { median: 72_205, rent: 1_450, majorCity: "Chicago" },
+  pennsylvania:  { median: 67_587, rent: 1_300, majorCity: "Philadelphia" },
+  georgia:       { median: 65_030, rent: 1_450, majorCity: "Atlanta" },
+  "new-jersey":  { median: 89_296, rent: 1_950, majorCity: "Newark" },
+  arizona:       { median: 66_023, rent: 1_450, majorCity: "Phoenix" },
+  colorado:      { median: 80_184, rent: 1_750, majorCity: "Denver" },
+  nevada:        { median: 65_686, rent: 1_400, majorCity: "Las Vegas" },
+  oregon:        { median: 70_084, rent: 1_550, majorCity: "Portland" },
+  virginia:      { median: 80_963, rent: 1_650, majorCity: "Arlington" },
+  massachusetts: { median: 89_645, rent: 2_100, majorCity: "Boston" },
+  michigan:      { median: 63_498, rent: 1_100, majorCity: "Detroit" },
+  ohio:          { median: 62_262, rent: 1_050, majorCity: "Columbus" },
+  north_carolina:{ median: 65_458, rent: 1_350, majorCity: "Charlotte" },
+};
+const DEFAULT_STATE_CONTEXT = { median: 77_000, rent: 1_450, majorCity: null as string | null };
+
 // ─── Page Component ───────────────────────────────────────────────────────────
 export default async function SalaryPage({ params }: { params: Params }) {
   const { slug } = await params;
@@ -122,6 +147,14 @@ export default async function SalaryPage({ params }: { params: Params }) {
   const biweekly = tax.takeHome / 26;
   const weekly = tax.takeHome / 52;
   const hourly = tax.takeHome / 2080;
+
+  // ── State-specific affordability context ──────────────────────────────────
+  const stateCtxData = STATE_CONTEXT[stateSlug] ?? DEFAULT_STATE_CONTEXT;
+  const stateMedian = stateCtxData.median;
+  const affordableRent = Math.round(monthly * 0.3);
+  const avgRent = stateCtxData.rent;
+  const majorCity = stateCtxData.majorCity ?? stateName;
+  const grossHourly = amount / 2080;
 
   // ── FAQ items (rendered visibly AND in schema) ──────────────────────────────
   const faqItems = [
@@ -167,6 +200,23 @@ export default async function SalaryPage({ params }: { params: Params }) {
     {
       q: `What is the effective tax rate on $${amtFmt} in ${displayName}?`,
       a: `Your effective tax rate on $${amtFmt} in ${displayName} is your total tax divided by your gross income. The calculator above shows your exact effective rate for ${TAX_YEAR}.`,
+    },
+    {
+      q: `How much is $${amtFmt}/year per hour before taxes in ${displayName}?`,
+      a: `$${amtFmt} ÷ 2,080 annual work hours = $${grossHourly.toFixed(2)}/hr gross. After all taxes in ${displayName}, your after-tax hourly rate is ${fmt(hourly)}/hr ($${(hourly * 8).toFixed(0)}/day).`,
+    },
+    noTax
+      ? {
+          q: `How much state income tax do you pay on $${amtFmt} in ${stateName}?`,
+          a: `Zero. ${stateName} has no state income tax. On a $${amtFmt} salary, your only deductions are federal income tax (${fmt(tax.federalTax)}) and FICA (${fmt(tax.ficaTotal)}). Total tax burden: ${fmt(tax.totalTax)} (${pct(tax.effectiveTotalRate)} effective rate).`,
+        }
+      : {
+          q: `What is the ${stateName} state income tax on $${amtFmt}?`,
+          a: `On a $${amtFmt} salary, your estimated ${stateName} state income tax is ${fmt(tax.stateTax)} — an effective state rate of ${pct(tax.stateTax / amount)}. Combined with federal tax (${fmt(tax.federalTax)}) and FICA (${fmt(tax.ficaTotal)}), total tax is ${fmt(tax.totalTax)} (${pct(tax.effectiveTotalRate)} overall effective rate).`,
+        },
+    {
+      q: `Is $${amtFmt} enough to live in ${majorCity}?`,
+      a: `On $${amtFmt} in ${stateName}, your monthly take-home is ${fmt(monthly)}. Using the 30% housing rule, you can budget up to ${fmt(affordableRent)}/month for rent. Average rent in ${stateName} runs ~$${avgRent.toLocaleString()}/month — so you ${affordableRent >= avgRent ? `can comfortably cover typical ${majorCity} housing costs and still have room for savings` : `may find ${majorCity}'s average rent (~$${avgRent.toLocaleString()}/mo) a stretch on this income`}.`,
     },
   ];
 
@@ -268,30 +318,31 @@ export default async function SalaryPage({ params }: { params: Params }) {
     .filter((s) => s.slug !== stateSlug)
     .filter((s) => getStateSalaryAmounts(s.slug).includes(amount));
 
-  // ── "Is X a good salary?" context ──────────────────────────────────────────
+  // ── "Is X a good salary?" context — state-specific median ─────────────────
+  const medianRatio = amount / stateMedian;
   let salaryTier: string;
   let salaryContext: string;
   if (amount >= 500_000) {
     salaryTier = "Top 1%";
-    salaryContext = `$${amtFmt} places you in the top 1% of US individual earners. After taxes in ${stateName}, your take-home of ${fmt(tax.takeHome)}/year puts you in an elite category — even after paying ${fmt(tax.totalTax)} in taxes.`;
-  } else if (amount >= 175_000) {
+    salaryContext = `$${amtFmt} is ${medianRatio.toFixed(1)}× the ${stateName} median household income ($${stateMedian.toLocaleString()}), placing you in the top 1% of earners nationally. After taxes in ${stateName}, your take-home of ${fmt(tax.takeHome)}/year remains substantial even after ${fmt(tax.totalTax)} in total taxes.`;
+  } else if (medianRatio >= 3.5) {
     salaryTier = "Top 5%";
-    salaryContext = `$${amtFmt} is a top-5% US income. After taxes in ${stateName}, you take home ${fmt(tax.takeHome)}/year — ${fmt(monthly)}/month. Your combined tax burden is ${fmt(tax.totalTax)} (${pct(tax.effectiveTotalRate)} effective rate).`;
-  } else if (amount >= 130_000) {
+    salaryContext = `$${amtFmt} is ${medianRatio.toFixed(1)}× the ${stateName} median household income ($${stateMedian.toLocaleString()}), a top-5% national income. After taxes you take home ${fmt(tax.takeHome)}/year (${fmt(monthly)}/month) — well above what most ${stateName} households earn.`;
+  } else if (medianRatio >= 2) {
     salaryTier = "Top 10%";
-    salaryContext = `$${amtFmt} is a top-10% US income. In ${stateName}, that's ${fmt(tax.takeHome)}/year take-home (${fmt(monthly)}/month). Comfortable in most US cities, including moderate cost-of-living metros.`;
-  } else if (amount >= 90_000) {
-    salaryTier = "Above Average";
-    salaryContext = `$${amtFmt} is above the US median household income (~$77,000). In ${stateName}, take-home is ${fmt(tax.takeHome)}/year (${fmt(monthly)}/month) — a solid income in most metro areas.`;
-  } else if (amount >= 60_000) {
+    salaryContext = `$${amtFmt} is roughly ${medianRatio.toFixed(1)}× the ${stateName} median household income ($${stateMedian.toLocaleString()}), a top-10% income. In ${stateName}, that's ${fmt(tax.takeHome)}/year take-home (${fmt(monthly)}/month) — comfortable in most ${stateName} metro areas.`;
+  } else if (medianRatio >= 1.2) {
+    salaryTier = "Above Median";
+    salaryContext = `$${amtFmt} is ${Math.round((medianRatio - 1) * 100)}% above the ${stateName} median household income ($${stateMedian.toLocaleString()}). After taxes, you take home ${fmt(tax.takeHome)}/year (${fmt(monthly)}/month) — a solid income across most ${stateName} metro areas.`;
+  } else if (medianRatio >= 0.9) {
     salaryTier = "Near Median";
-    salaryContext = `$${amtFmt} is near the US median individual income (~$60,000). In ${stateName}, take-home is ${fmt(tax.takeHome)}/year (${fmt(monthly)}/month) — livable in lower cost-of-living areas, tighter in major cities.`;
-  } else if (amount >= 40_000) {
+    salaryContext = `$${amtFmt} is ${medianRatio >= 1 ? "near" : "just below"} the ${stateName} median household income ($${stateMedian.toLocaleString()}). Your take-home of ${fmt(tax.takeHome)}/year (${fmt(monthly)}/month) is workable across many ${stateName} areas, though high-cost cities may be a stretch.`;
+  } else if (medianRatio >= 0.6) {
     salaryTier = "Entry Level";
-    salaryContext = `$${amtFmt} is below the US median individual income. In ${stateName}, take-home is ${fmt(tax.takeHome)}/year (${fmt(monthly)}/month). Cost of living varies widely — this budget works comfortably in many mid-sized US cities.`;
+    salaryContext = `$${amtFmt} is below the ${stateName} median household income ($${stateMedian.toLocaleString()}). After taxes, take-home is ${fmt(tax.takeHome)}/year (${fmt(monthly)}/month) — manageable in lower cost-of-living areas of ${stateName} but tight in major metro areas.`;
   } else {
     salaryTier = "Part-Time / Entry";
-    salaryContext = `$${amtFmt}/year is below the US median. In ${stateName}, take-home is ${fmt(tax.takeHome)}/year (${fmt(monthly)}/month). This may represent part-time work or a lower cost-of-living area.`;
+    salaryContext = `$${amtFmt}/year is well below the ${stateName} median household income ($${stateMedian.toLocaleString()}). Take-home is ${fmt(tax.takeHome)}/year (${fmt(monthly)}/month) — this may represent part-time work or an entry-level position.`;
   }
 
   // ── After-tax all-states page availability ─────────────────────────────────
@@ -589,6 +640,57 @@ export default async function SalaryPage({ params }: { params: Params }) {
           ))}
         </div>
       </section>
+
+      {/* ── What Can You Afford? ────────────────────────────────────────────── */}
+      <section className="container-page my-12">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
+            What can you afford on ${amtFmt} in {stateName}?
+          </h2>
+          <p className="text-gray-700 leading-relaxed mb-3">
+            Your monthly take-home of {fmt(monthly)} supports a housing budget of up to{" "}
+            {fmt(affordableRent)}/month under the standard 30% rule. Average rent in{" "}
+            {stateName} runs ~${avgRent.toLocaleString()}/month
+            {affordableRent >= avgRent
+              ? `, leaving roughly ${fmt(Math.round(monthly) - avgRent)}/month after rent for food, transportation, and savings.`
+              : `. That puts typical ${stateName} rent ${fmt(avgRent - affordableRent)}/month above the 30% threshold, meaning housing takes an outsized share of your budget.`}
+          </p>
+          {!noTax && texasDiff > 0 && (
+            <p className="text-gray-600 text-sm">
+              {stateName}&apos;s state income tax of {fmt(tax.stateTax)}/year reduces your
+              purchasing power by {fmt(texasDiff)}/year ({fmt(Math.round(texasDiff / 12))}/month)
+              compared to a no-tax state like Texas — the equivalent of roughly{" "}
+              {Math.round((texasDiff / 12) / avgRent * 10) / 10} months of average{" "}
+              {stateName} rent per year.
+            </p>
+          )}
+        </div>
+      </section>
+
+      {/* ── How Does [State] Compare? ───────────────────────────────────────── */}
+      {!noTax && texasDiff > 0 && (
+        <section className="container-page my-8">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6 sm:p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-3">
+              How does {stateName} compare for take-home pay?
+            </h2>
+            <p className="text-gray-700 leading-relaxed">
+              On a ${amtFmt} salary, {stateName} residents keep {fmt(tax.takeHome)}/year
+              after taxes — {fmt(texasDiff)} less per year than in Texas, which has no state income tax.
+              Over a 10-year career, that gap amounts to {fmt(texasDiff * 10)} in
+              additional take-home pay you&apos;d keep in a no-tax state.{" "}
+              {stateSlug !== "texas" && (
+                <Link
+                  href={`/salary/${amount}-salary-after-tax-texas`}
+                  className="text-green-700 font-semibold hover:underline"
+                >
+                  See ${amtFmt} after tax in Texas →
+                </Link>
+              )}
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* ── Same Salary, Popular States ─────────────────────────────────────── */}
       <section className="bg-gradient-to-r from-gray-50 to-blue-50 border-y border-gray-200 py-12">
