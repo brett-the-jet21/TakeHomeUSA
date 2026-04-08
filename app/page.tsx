@@ -7,8 +7,8 @@ import { ALL_STATE_CONFIGS, STATE_BY_SLUG } from "@/lib/states";
 import HomePageClient from "./HomePageClient";
 
 export const metadata: Metadata = {
-  title: { absolute: `See Exactly What You Take Home — Free ${TAX_YEAR} Calculator` },
-  description: `Stop guessing what's left after taxes. Get your exact take-home pay — ${TAX_YEAR} federal & state brackets, 401k & HSA deductions. All 50 states. Free & instant.`,
+  title: { absolute: `${TAX_YEAR} Salary Take-Home Calculator — All 50 States | TakeHomeUSA` },
+  description: `See your exact ${TAX_YEAR} after-tax pay instantly. Free, no signup. Updated for ${TAX_YEAR} IRS brackets across all 50 US states.`,
   alternates: { canonical: "https://www.takehomeusa.com/" },
   openGraph: {
     title: `Take-Home Pay Calculator — All 50 States | TakeHomeUSA`,
@@ -54,11 +54,11 @@ const organizationSchema = {
 const softwareSchema = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: `TakeHomeUSA Salary Calculator ${TAX_YEAR}`,
-  applicationCategory: "FinanceApplication",
-  operatingSystem: "Web",
+  name: "TakeHomeUSA Salary Calculator",
+  applicationCategory: "FinancialApplication",
+  operatingSystem: "All",
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-  description: `Calculate your exact take-home pay after federal and state taxes for all 50 US states. Uses ${TAX_YEAR} IRS tax brackets.`,
+  description: `Free ${TAX_YEAR} salary after-tax calculator covering all 50 US states. Instant results, no signup required.`,
   url: "https://www.takehomeusa.com",
   featureList: [
     "All 50 US states",
@@ -104,6 +104,18 @@ const faqItems = [
   {
     q: "How are take-home pay calculations done?",
     a: `Take-home pay = Gross Salary − Federal Income Tax − State Income Tax − Social Security (6.2%) − Medicare (1.45%). Federal tax is calculated using ${TAX_YEAR} IRS progressive brackets after subtracting the $16,100 standard deduction (single filer). State tax varies by state — flat rate, progressive brackets, or zero. Optional deductions like 401k, HSA, and health insurance further reduce taxable income.`,
+  },
+  {
+    q: "How is my take-home pay calculated?",
+    a: `We apply ${TAX_YEAR} IRS federal tax brackets, your standard deduction, FICA (Social Security and Medicare), and your chosen state's income tax rates to give you an accurate net pay figure instantly.`,
+  },
+  {
+    q: "Is TakeHomeUSA free to use?",
+    a: "Yes. TakeHomeUSA is completely free with no signup required. Enter your salary and state and see your results immediately.",
+  },
+  {
+    q: `Does TakeHomeUSA use ${TAX_YEAR} tax brackets?`,
+    a: `Yes. All calculations use the latest ${TAX_YEAR} IRS federal tax brackets and current state tax rates for all 50 US states.`,
   },
 ];
 

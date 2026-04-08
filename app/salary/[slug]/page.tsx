@@ -79,13 +79,11 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const amtFmt = amount.toLocaleString("en-US");
   const moFmt = Math.round(takeHomeMeta / 12).toLocaleString("en-US");
 
-  const hasLocalTax = cityTaxAmtMeta > 0;
-  const desc = noTax && !hasLocalTax
-    ? `See how much $${amtFmt} is after taxes in ${displayName} (${TAX_YEAR}). Take-home: $${moFmt}/mo — no state income tax. Monthly, biweekly & weekly breakdown. Free, instant.`
-    : `See how much $${amtFmt} is after taxes in ${displayName} (${TAX_YEAR}). Take-home: $${moFmt}/mo after all taxes. Monthly, biweekly & weekly breakdown. Free, instant.`;
+  const kAmount = amount % 1000 === 0 ? `${amount / 1000}k` : `${(amount / 1000).toFixed(1)}k`;
+  const desc = `See exactly how much of a $${amtFmt} salary you keep in ${displayName} in ${TAX_YEAR}. Free calculator. No signup. Real ${TAX_YEAR} IRS tax brackets.`;
 
   return {
-    title: `$${amtFmt} After Tax in ${displayName} — $${moFmt}/mo (${TAX_YEAR})`,
+    title: `$${kAmount} in ${displayName} After Tax ${TAX_YEAR} — Instant Take-Home Pay Result`,
     description: desc,
     alternates: {
       canonical: `https://www.takehomeusa.com/salary/${slug}`,
@@ -161,6 +159,14 @@ export default async function SalaryPage({ params }: { params: Params }) {
     {
       q: `How much is $${amtFmt} a year per hour after taxes in ${stateName}?`,
       a: `Based on a 40-hour work week (2,080 hours/year), a $${amtFmt} salary in ${stateName} works out to ${fmt(hourly)} per hour after taxes (${fmt(hourly * 8)}/day). Gross hourly rate is ${fmt(amount / 2080)}/hr.`,
+    },
+    {
+      q: `How much is $${amtFmt} after tax in ${displayName}?`,
+      a: `Use the calculator above to see your exact ${TAX_YEAR} net pay on a $${amtFmt} salary in ${displayName}, including federal tax, state tax, and FICA deductions.`,
+    },
+    {
+      q: `What is the effective tax rate on $${amtFmt} in ${displayName}?`,
+      a: `Your effective tax rate on $${amtFmt} in ${displayName} is your total tax divided by your gross income. The calculator above shows your exact effective rate for ${TAX_YEAR}.`,
     },
   ];
 

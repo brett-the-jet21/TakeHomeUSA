@@ -25,11 +25,9 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
   const { name, noTax, topRateDisplay, slug } = cfg;
 
-  const title = `${name} Paycheck Calculator ${TAX_YEAR} — See Your Exact Take-Home Pay`;
+  const title = `${name} Take-Home Pay Calculator ${TAX_YEAR} — See Your Exact Net Salary`;
 
-  const description = noTax
-    ? `Find out exactly how much you keep after federal taxes — ${name} has $0 state income tax. Free ${TAX_YEAR} calculator — enter your salary and see your take-home pay instantly.`
-    : `Find out exactly how much you keep after federal & ${name} state taxes. Free ${TAX_YEAR} calculator — enter your salary and see your take-home pay instantly.`;
+  const description = `Calculate your exact ${name} take-home pay for ${TAX_YEAR}. Free, instant, no signup. Real IRS brackets + ${name} state tax applied.`;
 
   return {
     title,
@@ -154,6 +152,14 @@ export default async function StatePage({ params }: { params: Params }) {
           q: `What other states have no income tax like ${name}?`,
           a: `The 9 no-income-tax states are: Texas, Florida, Nevada, Wyoming, South Dakota, Alaska, Tennessee, New Hampshire (wages only), and Washington. Moving from a high-tax state can add thousands annually to your take-home.`,
         },
+        {
+          q: `What is the take-home pay on a $100,000 salary in ${name}?`,
+          a: `Your take-home pay on a $100,000 salary in ${name} depends on your filing status and applicable deductions. Use the calculator above to see your exact ${TAX_YEAR} net pay in seconds.`,
+        },
+        {
+          q: `How accurate is the ${name} take-home pay calculator?`,
+          a: `The calculator uses ${TAX_YEAR} IRS federal brackets and current ${name} state tax rates. Results are estimates based on standard deductions and do not account for itemized deductions or local taxes.`,
+        },
       ]
     : [
         {
@@ -179,6 +185,14 @@ export default async function StatePage({ params }: { params: Params }) {
         {
           q: `What is the top income tax bracket in ${name}?`,
           a: `${name}'s top state rate is ${topRateDisplay}. Your effective (average) state rate will be lower — ${pct(tax100k.stateTax / 100_000)} effective at $100K — because only income above each threshold is taxed at the top rate.`,
+        },
+        {
+          q: `What is the take-home pay on a $100,000 salary in ${name}?`,
+          a: `Your take-home pay on a $100,000 salary in ${name} depends on your filing status and applicable deductions. Use the calculator above to see your exact ${TAX_YEAR} net pay in seconds.`,
+        },
+        {
+          q: `How accurate is the ${name} take-home pay calculator?`,
+          a: `The calculator uses ${TAX_YEAR} IRS federal brackets and current ${name} state tax rates. Results are estimates based on standard deductions and do not account for itemized deductions or local taxes.`,
         },
       ];
 
