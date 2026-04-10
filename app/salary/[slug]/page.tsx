@@ -124,7 +124,7 @@ const STATE_CONTEXT: Record<string, { median: number; rent: number; majorCity: s
   massachusetts: { median: 89_645, rent: 2_100, majorCity: "Boston" },
   michigan:      { median: 63_498, rent: 1_100, majorCity: "Detroit" },
   ohio:          { median: 62_262, rent: 1_050, majorCity: "Columbus" },
-  north_carolina:{ median: 65_458, rent: 1_350, majorCity: "Charlotte" },
+  "north-carolina":{ median: 65_458, rent: 1_350, majorCity: "Charlotte" },
 };
 const DEFAULT_STATE_CONTEXT = { median: 77_000, rent: 1_450, majorCity: null as string | null };
 
