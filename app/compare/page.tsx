@@ -1,4 +1,5 @@
 export const dynamic = "force-static";
+export const revalidate = false;
 
 import type { Metadata } from "next";
 import { TAX_YEAR } from "@/lib/tax";

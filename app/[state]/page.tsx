@@ -1,5 +1,6 @@
 export const dynamic = "force-static";
 export const dynamicParams = false;
+export const revalidate = false;
 
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
